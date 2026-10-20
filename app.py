@@ -31,36 +31,34 @@ MONTHS_LIST = [
 def load_data():
   if os.path.exists(CATALOG_FILE):
     df = pd.read_csv(CATALOG_FILE)
-    # Διασφάλιση τύπων δεδομένων για να μην υπάρχουν σφάλματα
     df["units"] = df["units"].astype(str)
     if "month" not in df.columns:
       df["month"] = "Άγνωστος / Δεν αναγράφεται"
+    if "mintage" not in df.columns:
+      df["mintage"] = "Άγνωστο"
     if "back_image_url" not in df.columns:
       df["back_image_url"] = (
           "https://via.placeholder.com/200/cccccc/ffffff?text=No+Back"
       )
   else:
-    data = [
-        {
-            "id": 1,
-            "code": "93-01",
-            "title": "Πρώτη Κάρτα ΟΤΕ 100 Μονάδες",
-            "month": "Ιανουάριος",
-            "year": 1993,
-            "units": "100",
-            "category": "Μαγνητικές",
-            "image_url": (
-                "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
-            ),
-            "back_image_url": (
-                "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
-            ),
-            "owned": True,
-            "quantity": 1,
-        }
-    ]
-    df = pd.DataFrame(data)
-    df["units"] = df["units"].astype(str)
+    data = []
+    df = pd.DataFrame(
+        data,
+        columns=[
+            "id",
+            "code",
+            "title",
+            "month",
+            "year",
+            "units",
+            "mintage",
+            "category",
+            "image_url",
+            "back_image_url",
+            "owned",
+            "quantity",
+        ],
+    )
     df.to_csv(CATALOG_FILE, index=False)
   return df
 
@@ -68,6 +66,35 @@ def load_data():
 df = load_data()
 
 st.title("📞 Η Συλλογή μου από Ελληνικές Τηλεκάρτες")
+
+# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ (ΕΞΑΓΩΓΗ & ΕΙΣΑΓΩΓΗ) ---
+st.sidebar.header("📁 Διαχείριση Αρχείου")
+
+csv_data = df.to_csv(index=False).encode("utf-8")
+st.sidebar.download_button(
+    label="📥 Κατέβασμα Αρχείου Συλλογής (CSV)",
+    data=csv_data,
+    file_name="my_catalog.csv",
+    mime="text/csv",
+)
+
+st.sidebar.markdown("---")
+
+uploaded_csv = st.sidebar.file_uploader(
+    "📤 Φόρτωση Συλλογής από Αρχείο (CSV)", type=["csv"]
+)
+
+if uploaded_csv is not None:
+  try:
+    imported_df = pd.read_csv(uploaded_csv)
+    imported_df["units"] = imported_df["units"].astype(str)
+    imported_df.to_csv(CATALOG_FILE, index=False)
+    st.sidebar.success("Το αρχείο φορτώθηκε επιτυχώς!")
+    st.rerun()
+  except Exception as e:
+    st.sidebar.error("Πρόκυψε σφάλμα κατά τη φόρτωση.")
+
+st.markdown("---")
 
 # --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ ---
 with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συλλογή", expanded=False):
@@ -85,6 +112,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       new_units = st.selectbox(
           "Μονάδες", ["100", "500", "1000", "Άλλο"], index=0
       )
+      new_mintage = st.text_input("Τιράζ (π.χ. 50.000)", value="Άγνωστο")
       new_cat = st.selectbox("Κατηγορία", ["Μαγνητικές", "Chip", "Χρονοκάρτα"])
 
     f_col1, f_col2 = st.columns(2)
@@ -132,6 +160,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
             "month": new_month,
             "year": int(new_year),
             "units": str(new_units),
+            "mintage": str(new_mintage),
             "category": new_cat,
             "image_url": front_path,
             "back_image_url": back_path,
@@ -150,125 +179,162 @@ st.markdown("---")
 # --- ΕΜΦΑΝΙΣΗ ΚΑΡΤΩΝ ---
 st.subheader("🖼️ Οι Κάρτες σου")
 
-cols_per_row = 3
-rows = [df.iloc[i : i + cols_per_row] for i in range(0, len(df), cols_per_row)]
+if df.empty:
+  st.info(
+      "Δεν υπάρχουν ακόμα κάρτες. Πρόσθεσε μία παραπάνω ή φόρτωσε ένα αρχείο"
+      " CSV!"
+  )
+else:
+  cols_per_row = 3
+  rows = [df.iloc[i : i + cols_per_row] for i in range(0, len(df), cols_per_row)]
 
-for row_chunk in rows:
-  cols = st.columns(cols_per_row)
-  for idx, (_, row) in enumerate(row_chunk.iterrows()):
-    with cols[idx]:
-      img_c1, img_c2 = st.columns(2)
-      with img_c1:
-        st.image(row["image_url"], width=130, caption="Μπροστά")
-      with img_c2:
-        st.image(row["back_image_url"], width=130, caption="Πίσω")
+  for row_chunk in rows:
+    cols = st.columns(cols_per_row)
+    for idx, (_, row) in enumerate(row_chunk.iterrows()):
+      with cols[idx]:
+        # Ασφαλής έλεγχος εικόνας για να μην κρασάρει αν λείπει το αρχείο
+        front_img = (
+            row["image_url"]
+            if (
+                str(row["image_url"]).startswith("http")
+                or os.path.exists(str(row["image_url"]))
+            )
+            else "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
+        )
+        back_img = (
+            row["back_image_url"]
+            if (
+                str(row["back_image_url"]).startswith("http")
+                or os.path.exists(str(row["back_image_url"]))
+            )
+            else "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
+        )
 
-      st.markdown(f"**{row['code']} - {row['title']}**")
-      st.caption(
-          f"📅 {row['month']} {row['year']} | 🔢 Μονάδες: {row['units']} |"
-          f" {row['category']}"
-      )
+        img_c1, img_c2 = st.columns(2)
+        with img_c1:
+          st.image(front_img, width=130, caption="Μπροστά")
+        with img_c2:
+          st.image(back_img, width=130, caption="Πίσω")
 
-      current_owned = row["owned"]
-      new_owned = st.checkbox(
-          "Την έχω", value=current_owned, key=f"owned_{row['id']}"
-      )
-      new_qty = st.number_input(
-          "Ποσότητα",
-          min_value=0,
-          value=int(row["quantity"]),
-          key=f"qty_{row['id']}",
-      )
+        st.markdown(f"**{row['code']} - {row['title']}**")
+        st.caption(
+            f"📅 {row['month']} {row['year']} | 🔢 Μονάδες: {row['units']} |"
+            f" Τιράζ: {row['mintage']} | {row['category']}"
+        )
 
-      if new_owned != current_owned or new_qty != row["quantity"]:
-        df.loc[df["id"] == row["id"], "owned"] = new_owned
-        df.loc[df["id"] == row["id"], "quantity"] = new_qty
-        df["units"] = df["units"].astype(str)
-        df.to_csv(CATALOG_FILE, index=False)
+        current_owned = row["owned"]
+        new_owned = st.checkbox(
+            "Την έχω", value=current_owned, key=f"owned_{row['id']}"
+        )
+        new_qty = st.number_input(
+            "Ποσότητα",
+            min_value=0,
+            value=int(row["quantity"]),
+            key=f"qty_{row['id']}",
+        )
 
-      # --- ΕΠΕΞΕΡΓΑΣΙΑ / ΔΙΑΓΡΑΦΗ ---
-      with st.expander("✏️ Επεξεργασία / Διαγραφή", expanded=False):
-        with st.form(f"edit_form_{row['id']}"):
-          e_code = st.text_input("Κωδικός", value=str(row["code"]))
-          e_title = st.text_input("Τίτλος", value=str(row["title"]))
+        if new_owned != current_owned or new_qty != row["quantity"]:
+          df.loc[df["id"] == row["id"], "owned"] = new_owned
+          df.loc[df["id"] == row["id"], "quantity"] = new_qty
+          df["units"] = df["units"].astype(str)
+          df.to_csv(CATALOG_FILE, index=False)
 
-          m_index = (
-              MONTHS_LIST.index(row["month"])
-              if row["month"] in MONTHS_LIST
-              else 12
-          )
-          e_month = st.selectbox(
-              "Μήνας", MONTHS_LIST, index=m_index, key=f"m_{row['id']}"
-          )
+        # --- ΕΠΕΞΕΡΓΑΣΙΑ / ΔΙΑΓΡΑΦΗ ---
+        with st.expander("✏️ Επεξεργασία / Διαγραφή", expanded=False):
+          with st.form(f"edit_form_{row['id']}"):
+            e_code = st.text_input("Κωδικός", value=str(row["code"]))
+            e_title = st.text_input("Τίτλος", value=str(row["title"]))
 
-          e_year = st.number_input(
-              "Έτος",
-              min_value=1990,
-              max_value=2030,
-              value=int(row["year"]),
-              key=f"y_{row['id']}",
-          )
+            m_index = (
+                MONTHS_LIST.index(row["month"])
+                if row["month"] in MONTHS_LIST
+                else 12
+            )
+            e_month = st.selectbox(
+                "Μήνας", MONTHS_LIST, index=m_index, key=f"m_{row['id']}"
+            )
 
-          units_options = ["100", "500", "1000", "Άλλο"]
-          u_val = str(row["units"])
-          u_index = units_options.index(u_val) if u_val in units_options else 3
-          e_units = st.selectbox(
-              "Μονάδες", units_options, index=u_index, key=f"u_{row['id']}"
-          )
+            e_year = st.number_input(
+                "Έτος",
+                min_value=1990,
+                max_value=2030,
+                value=int(row["year"]),
+                key=f"y_{row['id']}",
+            )
 
-          cat_options = ["Μαγνητικές", "Chip", "Χρονοκάρτα"]
-          c_index = (
-              cat_options.index(row["category"])
-              if row["category"] in cat_options
-              else 0
-          )
-          e_cat = st.selectbox(
-              "Κατηγορία", cat_options, index=c_index, key=f"c_{row['id']}"
-          )
+            units_options = ["100", "500", "1000", "Άλλο"]
+            u_val = str(row["units"])
+            u_index = (
+                units_options.index(u_val) if u_val in units_options else 3
+            )
+            e_units = st.selectbox(
+                "Μονάδες", units_options, index=u_index, key=f"u_{row['id']}"
+            )
 
-          e_front = st.file_uploader(
-              "Νέα Μπροστινή Όψη", type=["jpg", "png", "jpeg"], key=f"ef_{row['id']}"
-          )
-          e_back = st.file_uploader(
-              "Νέα Πίσω Όψη", type=["jpg", "png", "jpeg"], key=f"eb_{row['id']}"
-          )
+            e_mintage = st.text_input(
+                "Τιράζ",
+                value=str(row.get("mintage", "Άγνωστο")),
+                key=f"mint_{row['id']}",
+            )
 
-          col_save, col_del = st.columns(2)
-          with col_save:
-            save_edit = st.form_submit_button("💾 Αποθήκευση")
-          with col_del:
-            delete_card = st.form_submit_button("🗑️ Διαγραφή")
+            cat_options = ["Μαγνητικές", "Chip", "Χρονοκάρτα"]
+            c_index = (
+                cat_options.index(row["category"])
+                if row["category"] in cat_options
+                else 0
+            )
+            e_cat = st.selectbox(
+                "Κατηγορία", cat_options, index=c_index, key=f"c_{row['id']}"
+            )
 
-          if save_edit:
-            df.loc[df["id"] == row["id"], "code"] = e_code
-            df.loc[df["id"] == row["id"], "title"] = e_title
-            df.loc[df["id"] == row["id"], "month"] = e_month
-            df.loc[df["id"] == row["id"], "year"] = int(e_year)
-            df.loc[df["id"] == row["id"], "units"] = str(e_units)
-            df.loc[df["id"] == row["id"], "category"] = e_cat
+            e_front = st.file_uploader(
+                "Νέα Μπροστινή Όψη",
+                type=["jpg", "png", "jpeg"],
+                key=f"ef_{row['id']}",
+            )
+            e_back = st.file_uploader(
+                "Νέα Πίσω Όψη",
+                type=["jpg", "png", "jpeg"],
+                key=f"eb_{row['id']}",
+            )
 
-            if e_front is not None:
-              front_path = os.path.join(IMAGES_DIR, "front_" + e_front.name)
-              with open(front_path, "wb") as f:
-                f.write(e_front.getbuffer())
-              df.loc[df["id"] == row["id"], "image_url"] = front_path
+            col_save, col_del = st.columns(2)
+            with col_save:
+              save_edit = st.form_submit_button("💾 Αποθήκευση")
+            with col_del:
+              delete_card = st.form_submit_button("🗑️ Διαγραφή")
 
-            if e_back is not None:
-              back_path = os.path.join(IMAGES_DIR, "back_" + e_back.name)
-              with open(back_path, "wb") as f:
-                f.write(e_back.getbuffer())
-              df.loc[df["id"] == row["id"], "back_image_url"] = back_path
+            if save_edit:
+              df.loc[df["id"] == row["id"], "code"] = e_code
+              df.loc[df["id"] == row["id"], "title"] = e_title
+              df.loc[df["id"] == row["id"], "month"] = e_month
+              df.loc[df["id"] == row["id"], "year"] = int(e_year)
+              df.loc[df["id"] == row["id"], "units"] = str(e_units)
+              df.loc[df["id"] == row["id"], "mintage"] = str(e_mintage)
+              df.loc[df["id"] == row["id"], "category"] = e_cat
 
-            df["units"] = df["units"].astype(str)
-            df.to_csv(CATALOG_FILE, index=False)
-            st.success("Οι αλλαγές αποθηκεύτηκαν!")
-            st.rerun()
+              if e_front is not None:
+                front_path = os.path.join(IMAGES_DIR, "front_" + e_front.name)
+                with open(front_path, "wb") as f:
+                  f.write(e_front.getbuffer())
+                df.loc[df["id"] == row["id"], "image_url"] = front_path
 
-          if delete_card:
-            df = df[df["id"] != row["id"]]
-            df["units"] = df["units"].astype(str)
-            df.to_csv(CATALOG_FILE, index=False)
-            st.success("Η κάρτα διαγράφηκε!")
-            st.rerun()
+              if e_back is not None:
+                back_path = os.path.join(IMAGES_DIR, "back_" + e_back.name)
+                with open(back_path, "wb") as f:
+                  f.write(e_back.getbuffer())
+                df.loc[df["id"] == row["id"], "back_image_url"] = back_path
 
-      st.markdown("---")
+              df["units"] = df["units"].astype(str)
+              df.to_csv(CATALOG_FILE, index=False)
+              st.success("Οι αλλαγές αποθηκεύτηκαν!")
+              st.rerun()
+
+            if delete_card:
+              df = df[df["id"] != row["id"]]
+              df["units"] = df["units"].astype(str)
+              df.to_csv(CATALOG_FILE, index=False)
+              st.success("Η κάρτα διαγράφηκε!")
+              st.rerun()
+
+        st.markdown("---")
