@@ -197,7 +197,6 @@ st.markdown("---")
 # --- ΕΦΑΡΜΟΓΗ ΦΙΛΤΡΩΝ & ΤΑΞΙΝΟΜΗΣΗΣ ---
 filtered_df = df.copy()
 
-# 1. Φιλτράρισμα με βάση την αναζήτηση
 if search_query:
   query = search_query.lower()
   filtered_df = filtered_df[
@@ -205,11 +204,9 @@ if search_query:
       | filtered_df["title"].str.lower().str.contains(query, na=False)
   ]
 
-# 2. Φιλτράρισμα για το αν την έχω
 if filter_owned:
   filtered_df = filtered_df[filtered_df["owned"] == True]
 
-# 3. Ταξινόμηση
 if sort_option == "Χρονολογική (Παλαιότερες πρώτα)":
   filtered_df = filtered_df.sort_values(by="year", ascending=True)
 elif sort_option == "Χρονολογική (Νεότερες πρώτα)":
@@ -334,7 +331,7 @@ else:
             e_front = st.file_uploader(
                 "Νέα Μπροστινή Όψη",
                 type=["jpg", "png", "jpeg"],
-                key=fef_{row['id']} if False else f"ef_{row['id']}",
+                key=f"ef_{row['id']}",
             )
             e_back = st.file_uploader(
                 "Νέα Πίσω Όψη",
@@ -366,9 +363,7 @@ else:
               if e_back is not None:
                 back_path = os.path.join(IMAGES_DIR, "back_" + e_back.name)
                 with open(back_path, "wb") as f:
-                  f.write(back_back.getbuffer()) if False else f.write(
-                      e_back.getbuffer()
-                  )
+                  f.write(e_back.getbuffer())
                 df.loc[df["id"] == row["id"], "back_image_url"] = back_path
 
               df["units"] = df["units"].astype(str)
