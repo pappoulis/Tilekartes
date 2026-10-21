@@ -11,35 +11,32 @@ IMAGES_DIR = "images"
 if not os.path.exists(IMAGES_DIR):
   os.makedirs(IMAGES_DIR)
 
-MONTHS_LIST = [
-    "Ιανουάριος",
-    "Φεβρουάριος",
-    "Μάρτιος",
-    "Απρίλιος",
-    "Μάιος",
-    "Ιούνιος",
-    "Ιούλιος",
-    "Αύγουστος",
-    "Σεπτέμβριος",
-    "Οκτώβριος",
-    "Νοέμβριος",
-    "Δεκέμβριος",
-    "Άγνωστος / Δεν αναγράφεται",
-]
-
+MONTHS_NUM_LIST = [f"{i:02d}" for i in range(1, 13)] + ["--"]
 CONDITION_OPTIONS = ["Άριστη", "Φθαρμένη / Χτυπημένη", "Μέτρια"]
+
+# Χάρτης μετατροπής ονομάτων μηνών σε διψήφιους αριθμούς
+MONTH_MAPPING = {
+    "Ιανουάριος": "01",
+    "Φεβρουάριος": "02",
+    "Μάρτιος": "03",
+    "Απρίλιος": "04",
+    "Μάιος": "05",
+    "Ιούνιος": "06",
+    "Ιούλιος": "07",
+    "Αύγουστος": "08",
+    "Σεπτέμβριος": "09",
+    "Οκτώβριος": "10",
+    "Νοέμβριος": "11",
+    "Δεκέμβριος": "12",
+}
 
 
 def load_data():
   if os.path.exists(CATALOG_FILE):
     df = pd.read_csv(CATALOG_FILE, dtype=str)
-    # Μετατροπή ειδικών πεδίων στους σωστούς τύπους
+
     if "id" in df.columns:
       df["id"] = pd.to_numeric(df["id"], errors="coerce").fillna(1).astype(int)
-    if "year" in df.columns:
-      df["year"] = (
-          pd.to_numeric(df["year"], errors="coerce").fillna(1995).astype(int)
-      )
     if "quantity" in df.columns:
       df["quantity"] = (
           pd.to_numeric(df["quantity"], errors="coerce").fillna(1).astype(int)
@@ -50,16 +47,34 @@ def load_data():
     else:
       df["owned"] = True
 
-    if "month" not in df.columns:
-      df["month"] = "Άγνωστος / Δεν αναγράφεται"
+    # Αυτόματη μετατροπή παλιών μηνών σε διψήφιους αριθμούς
+    if "month" in df.columns:
+      df["month"] = (
+          df["month"]
+          .map(lambda m: MONTH_MAPPING.get(m, m if m in MONTHS_NUM_LIST else "--"))
+      )
+    else:
+      df["month"] = "--"
+
+    # Αυτόματη μετατροπή τετραψήφιων ετών σε διψήφια (π.χ. 1993 -> 93)
+    if "year" in df.columns:
+      df["year"] = df["year"].astype(str).str.strip().str[-2:]
+    else:
+      df["year"] = "93"
+
     if "mintage" not in df.columns:
       df["mintage"] = "Άγνωστο"
     if "condition" not in df.columns:
       df["condition"] = "Άριστη"
+    if "category" not in df.columns:
+      df["category"] = "Chip"
     if "back_image_url" not in df.columns:
       df["back_image_url"] = (
           "https://via.placeholder.com/200/cccccc/ffffff?text=No+Back"
       )
+
+    # Αποθήκευση των διορθωμένων δεδομένων πίσω στο CSV
+    df.to_csv(CATALOG_FILE, index=False)
   else:
     df = pd.DataFrame(
         columns=[
@@ -103,7 +118,7 @@ uploaded_csv = st.sidebar.file_uploader(
 
 if uploaded_csv is not None:
   try:
-    imported_df = pd.read_csv(uploaded_csv)
+    imported_df = pd.read_csv(uploaded_csv, dtype=str)
     imported_df.to_csv(CATALOG_FILE, index=False)
     st.sidebar.success("Το αρχείο φορτώθηκε επιτυχώς!")
     st.rerun()
@@ -113,10 +128,8 @@ if uploaded_csv is not None:
 st.sidebar.markdown("---")
 st.sidebar.header("🔍 Αναζήτηση & Ταξινόμηση")
 
-# Πεδίο Αναζήτησης
-search_query = st.sidebar.text_input("Αναζήτηση (Κωδικός ή Τίτλος)")
+search_query = st.sidebar.text_input("Αναζήτηση (Κωδικός, Τίτλος ή Ημερομηνία)")
 
-# Επιλογή Ταξινόμησης
 sort_option = st.sidebar.selectbox(
     "Ταξινόμηση κατά:",
     [
@@ -127,7 +140,6 @@ sort_option = st.sidebar.selectbox(
     ],
 )
 
-# Φίλτρα εμφάνισης
 filter_owned = st.sidebar.checkbox("Εμφάνιση μόνο όσων έχω στη συλλογή")
 filter_damaged = st.sidebar.checkbox(
     "⚠️ Εμφάνιση μόνο Φθαρμένων (για αντικατάσταση)"
@@ -143,16 +155,21 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       new_code = st.text_input("Κωδικός Κάρτας (π.χ. 95-04)")
       new_title = st.text_input("Τίτλος / Θέμα (π.χ. Φασιανός)")
     with col2:
-      new_month = st.selectbox("Μήνας Κυκλοφορίας", MONTHS_LIST)
-      new_year = st.number_input(
-          "Έτος Κυκλοφορίας", min_value=1990, max_value=2030, value=1995
-      )
+      c_m, c_y = st.columns(2)
+      with c_m:
+        new_month = st.selectbox("Μήνας (ΜΜ)", MONTHS_NUM_LIST, index=9)
+      with c_y:
+        new_year = st.text_input(
+            "Έτος (π.χ. 93)", value="93", max_chars=2
+        )
     with col3:
       new_units = st.selectbox(
           "Μονάδες", ["100", "500", "1000", "Άλλο"], index=0
       )
       new_mintage = st.text_input("Τιράζ (π.χ. 50.000)", value="Άγνωστο")
-      new_cat = st.selectbox("Κατηγορία", ["Μαγνητικές", "Chip", "Χρονοκάρτα"])
+      new_cat = st.selectbox(
+          "Κατηγορία", ["Μαγνητική", "Chip", "Χρονοκάρτα"], index=1
+      )
       new_condition = st.selectbox(
           "Κατάσταση Κάρτας", CONDITION_OPTIONS, index=0
       )
@@ -200,7 +217,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
             "code": str(new_code),
             "title": str(new_title),
             "month": str(new_month),
-            "year": int(new_year),
+            "year": str(new_year).zfill(2),
             "units": str(new_units),
             "mintage": str(new_mintage),
             "category": str(new_cat),
@@ -226,6 +243,9 @@ if search_query:
   filtered_df = filtered_df[
       filtered_df["code"].str.lower().str.contains(query, na=False)
       | filtered_df["title"].str.lower().str.contains(query, na=False)
+      | (filtered_df["month"] + "/" + filtered_df["year"])
+      .str.lower()
+      .str.contains(query, na=False)
   ]
 
 if filter_owned:
@@ -237,9 +257,13 @@ if filter_damaged:
   ]
 
 if sort_option == "Χρονολογική (Παλαιότερες πρώτα)":
-  filtered_df = filtered_df.sort_values(by="year", ascending=True)
+  filtered_df = filtered_df.sort_values(
+      by=["year", "month"], ascending=[True, True]
+  )
 elif sort_option == "Χρονολογική (Νεότερες πρώτα)":
-  filtered_df = filtered_df.sort_values(by="year", ascending=False)
+  filtered_df = filtered_df.sort_values(
+      by=["year", "month"], ascending=[False, False]
+  )
 elif sort_option == "Αλφαβητικά (Τίτλος A-Ω)":
   filtered_df = filtered_df.sort_values(by="title", ascending=True)
 elif sort_option == "Αλφαβητικά (Κωδικός)":
@@ -289,10 +313,12 @@ else:
         cond_str = str(row.get("condition", "Άριστη"))
         badge = " ⚠️ [Φθαρμένη]" if cond_str == "Φθαρμένη / Χτυπημένη" else ""
 
+        date_str = f"{row['month']}/{row['year']}"
+
         st.markdown(f"**{row['code']} - {row['title']}**{badge}")
         st.caption(
-            f"📅 {row['month']} {row['year']} | 🔢 Μονάδες: {row['units']} |"
-            f" Κατάσταση: **{cond_str}**"
+            f"📅 **{date_str}** | 🔢 Μονάδες: {row['units']} | Κατάσταση:"
+            f" **{cond_str}** | {row['category']}"
         )
 
         current_owned = bool(row["owned"])
@@ -317,22 +343,29 @@ else:
             e_code = st.text_input("Κωδικός", value=str(row["code"]))
             e_title = st.text_input("Τίτλος", value=str(row["title"]))
 
-            m_index = (
-                MONTHS_LIST.index(row["month"])
-                if row["month"] in MONTHS_LIST
-                else 12
-            )
-            e_month = st.selectbox(
-                "Μήνας", MONTHS_LIST, index=m_index, key=f"m_{row['id']}"
-            )
+            em_col, ey_col = st.columns(2)
+            with em_col:
+              m_str = str(row["month"]).zfill(2)
+              m_index = (
+                  MONTHS_NUM_LIST.index(m_str)
+                  if m_str in MONTHS_NUM_LIST
+                  else 12
+              )
+              e_month = st.selectbox(
+                  "Μήνας (ΜΜ)",
+                  MONTHS_NUM_LIST,
+                  index=m_index,
+                  key=f"m_{row['id']}",
+              )
 
-            e_year = st.number_input(
-                "Έτος",
-                min_value=1990,
-                max_value=2030,
-                value=int(row["year"]),
-                key=f"y_{row['id']}",
-            )
+            with ey_col:
+              y_str = str(row["year"]).strip()[-2:]
+              e_year = st.text_input(
+                  "Έτος (ΕΕ)",
+                  value=y_str,
+                  max_chars=2,
+                  key=f"y_{row['id']}",
+              )
 
             units_options = ["100", "500", "1000", "Άλλο"]
             u_val = str(row["units"])
@@ -349,11 +382,11 @@ else:
                 key=f"mint_{row['id']}",
             )
 
-            cat_options = ["Μαγνητικές", "Chip", "Χρονοκάρτα"]
+            cat_options = ["Μαγνητική", "Chip", "Χρονοκάρτα"]
             c_index = (
                 cat_options.index(row["category"])
                 if row["category"] in cat_options
-                else 0
+                else 1
             )
             e_cat = st.selectbox(
                 "Κατηγορία", cat_options, index=c_index, key=f"c_{row['id']}"
@@ -392,7 +425,7 @@ else:
               df.loc[df["id"] == row["id"], "code"] = str(e_code)
               df.loc[df["id"] == row["id"], "title"] = str(e_title)
               df.loc[df["id"] == row["id"], "month"] = str(e_month)
-              df.loc[df["id"] == row["id"], "year"] = int(e_year)
+              df.loc[df["id"] == row["id"], "year"] = str(e_year).zfill(2)
               df.loc[df["id"] == row["id"], "units"] = str(e_units)
               df.loc[df["id"] == row["id"], "mintage"] = str(e_mintage)
               df.loc[df["id"] == row["id"], "category"] = str(e_cat)
