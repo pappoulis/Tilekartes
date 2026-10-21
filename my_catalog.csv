@@ -1,2 +1,47 @@
-id,code,title,year,units,category,image_url,owned,quantity,month,back_image_url,mintage
-3,m001,Μύκονος 1 μύλος,1992,500,Chip,images\front_εικόνα_Viber_2026-04-03_16-51-56-562.jpg,True,1,Οκτώβριος,images\back_m0001 πίσω.jpg,100000
+id,code,title,year,units,category,image_url,owned,quantity,month,back_image_url,mintage,condition
+3,m001,Μύκονος 1 μύλος,92,500,Chip,images\front_εικόνα_Viber_2026-04-03_16-51-56-562.jpg,True,1,10,images\back_m0001 πίσω.jpg,100000,Φθαρμένη / Χτυπημένη
+4,x0002,Παρθενών,92,100,Chip,images\front_x0002c.jpg,True,1,10,images\back_x0002d.jpg,200000,Άριστη
+5,m002,Μύκονος 2 μύλος,93,500,Chip,images\front_m002c.jpg,True,1,01,images\back_m002d.jpg,64000,Άριστη
+6,x0001,Βεργίνα,92,100,Chip,images\front_x0001c.jpg,False,1,09,images\back_x0001d.jpg,32000,Άριστη
+7,m003,Αλεξανδρούπολη,93,500,Chip,images\front_m003c.jpg,True,1,02,images\back_m003d.jpg,64000,Άριστη
+8,y001,Ρόδος,93,1000,Chip,images\front_y001c.jpg,True,1,02,images\back_y001d.jpg,64000,Άριστη
+9,x0006,Έδεσσα,93,100,Chip,images\front_x0006c.jpg,True,1,04,images\back_x0006d.jpg,960000,Άριστη
+10,m005,Σαντορίνη,93,500,Chip,images\front_m005c.jpg,True,1,05,images\back_m005d.jpg,200000,Άριστη
+11,y005,Εθνοκάρτα,93,1000,Chip,images\front_y005c.jpg,True,1,05,images\back_y005d.jpg,50000,Φθαρμένη / Χτυπημένη
+12,x0011,Ναύπλιο,93,100,Chip,images\front_x0011c.jpg,True,1,06,images\back_x0011d.jpg,704000,Άριστη
+13,x0012,Ιωάννινα,93,100,Chip,images\front_x0012c.jpg,True,1,07,images\back_x0012d.jpg,960000,Άριστη
+14,x0013,Πάτρα,93,100,Chip,images\front_x0013c.jpg,True,1,08,images\back_x0013d.jpg,910000,Άριστη
+15,m010,Χανιά Αρκάδι,93,500,Chip,images\front_m010c.jpg,True,1,08,images\back_m010d.jpg,64000,Άριστη
+16,x0015,Τρίπολη,93,100,Chip,images\front_x0015c.jpg,True,1,09,images\back_x0015d.jpg,1024000,Μέτρια
+17,x0016,Μονεμβάσια,93,100,Chip,images\front_x0016c.jpg,True,1,10,images\back_x0016d.jpg,1024000,Φθαρμένη / Χτυπημένη
+18,x0017,Εθνοκάρτα,93,100,Chip,images\front_x0017c.jpg,True,1,11,images\back_x0017d.jpg,100000,Μέτρια
+19,x0020,Παρθενών,93,100,Chip,images\front_x0020c.jpg,True,1,11,images\back_x0020d.jpg,474000,Μέτρια
+20,x0021,Ναύπακτος,93,100,Chip,images\front_x0021c.jpg,True,1,12,images\back_x0021d.jpg,1200000,Άριστη
+21,x0022,Όλυμπος Καρπάθου,94,100,Chip,images\front_x0022c.jpg,True,1,01,images\back_x0022d.jpg,1260000,Άριστη
+22,x0023,Αρπαγή της Ευρώπης,94,100,Chip,images\front_x0023c.jpg,True,1,02,images\back_x0023d.jpg,750000,Άριστη
+23,x0026,Πύλος,94,100,Chip,images\front_x0026c.jpg,True,1,02,images\back_x0026d.jpg,1260000,Άριστη
+24,x0029,Minion,94,100,Chip,images\front_x0029c.jpg,True,1,03,images\back_x0029d.jpg,50000,Μέτρια
+25,x0027,Αρπαγή της Ευρώπης,94,100,Chip,images\front_x0027c.jpg,True,1,03,images\back_x0027d.jpg,738000,Άριστη
+26,x0031,Ατλάντικ s/m,94,100,Chip,images\front_x0031c.jpg,True,1,04,images\back_x0031d.jpg,100000,Άριστη
+27,x0030,Τηλεειδοποίηση,94,100,Chip,images\front_x0030c.jpg,True,1,04,images\back_x0030d.jpg,1410000,Άριστη
+28,x0034,Κνωσός,94,100,Chip,images\front_x0034c.jpg,True,1,05,images\back_x0034d.jpg,1000000,Άριστη
+29,x0033,Ζάππειο Προεδρεία ΕΟΚ,94,100,Chip,images\front_x0033c.jpg,True,1,05,images\back_x0033d.jpg,560000,Άριστη
+30,x0039,ΛΟΤΤΟ,94,100,Chip,images\front_x0039c.jpg,True,1,07,images\back_x0039d.jpg,200000,Μέτρια
+31,x0037,Ίος Κυκλάδες,94,100,Chip,images\front_x0037c.jpg,True,1,07,images\back_x0037d.jpg,612000,Άριστη
+32,x0046,Καλοκαίρι 1994,94,100,Chip,images\front_x0046c.jpg,True,1,09,images\back_x0046d.jpg,338000,Άριστη
+33,x0049,Χρυσός οδηγός,94,100,Chip,images\front_x0049c.jpg,True,1,09,images\back_x0049d.jpg,496000,Άριστη
+34,x0058,Χρυσός οδηγός,94,100,Chip,images\front_x0058c.jpg,True,1,10,images\back_x0058d.jpg,408000,Άριστη
+35,x0057,Ακαδημία,94,100,Chip,images\front_x0057c.jpg,True,1,10,images\back_x0057d.jpg,388000,Άριστη
+36,x0063,Ανακήρυξη Συντάγματος,94,100,Chip,images\front_x0063c.jpg,True,1,10,images\back_x0063d.jpg,72000,Άριστη
+37,x0035,Λήμνος,94,100,Chip,images\front_x0035c.jpg,True,1,06,images\back_x0035d.jpg,1588000,Άριστη
+38,x0080,Ημερολόγιο 1995,94,100,Chip,images\front_x0080c.jpg,True,1,11,images\back_x0080d.jpg,1200000,Άριστη
+39,x0066,Πανεπιστήμιο,94,100,Chip,images\front_x0066c.jpg,True,1,11,images\back_x0066d.jpg,388000,Άριστη
+40,x0071,Εθνική βιβλιοθήκη,94,100,Chip,images\front_x0071c.jpg,True,1,11,images\back_x0071d.jpg,388000,Άριστη
+41,x0079,Πήλιο,94,100,Chip,images\front_x0079c.jpg,True,1,11,images\back_x0079d.jpg,308000,Άριστη
+42,x0078,Πάπιγκο,94,100,Chip,images\front_x0078c.jpg,True,1,11,images\back_x0078d.jpg,388000,Άριστη
+43,x0070,Φασιανός,94,100,Chip,images\front_x0070c.jpg,True,1,11,images\back_x0070d.jpg,72000,Μέτρια
+44,x0068,Σκιέρ έλατα,94,100,Chip,images\front_x0068c.jpg,True,1,11,images\back_x0068d.jpg,308000,Άριστη
+45,x0067,Σκιέρς 2 Βελούχι,94,100,Chip,images\front_x0067c.jpg,True,1,11,images\back_x0067d.jpg,308000,Άριστη
+46,x0089,Παξοί,95,100,Chip,images\front_x0089c.jpg,True,1,01,images\back_x0089d.jpg,400000,Άριστη
+47,x0091,Ζάκυνθος,95,100,Chip,images\front_x0091c.jpg,True,1,01,images\back_x0091d.jpg,412000,Άριστη
+48,x0093,Τηλεειδοποίηση,95,100,Chip,images\front_x0093c.jpg,True,1,01,images\back_x0093d.jpg,1000000,Άριστη
