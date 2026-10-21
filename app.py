@@ -32,18 +32,34 @@ CONDITION_OPTIONS = ["Άριστη", "Φθαρμένη / Χτυπημένη", "�
 
 def load_data():
   if os.path.exists(CATALOG_FILE):
-    df = pd.read_csv(CATALOG_FILE)
-    df["units"] = df["units"].astype(str)
+    df = pd.read_csv(CATALOG_FILE, dtype=str)
+    # Μετατροπή ειδικών πεδίων στους σωστούς τύπους
+    if "id" in df.columns:
+      df["id"] = pd.to_numeric(df["id"], errors="coerce").fillna(1).astype(int)
+    if "year" in df.columns:
+      df["year"] = (
+          pd.to_numeric(df["year"], errors="coerce").fillna(1995).astype(int)
+      )
+    if "quantity" in df.columns:
+      df["quantity"] = (
+          pd.to_numeric(df["quantity"], errors="coerce").fillna(1).astype(int)
+      )
+
+    if "owned" in df.columns:
+      df["owned"] = df["owned"].astype(str).str.lower() == "true"
+    else:
+      df["owned"] = True
+
     if "month" not in df.columns:
       df["month"] = "Άγνωστος / Δεν αναγράφεται"
     if "mintage" not in df.columns:
       df["mintage"] = "Άγνωστο"
+    if "condition" not in df.columns:
+      df["condition"] = "Άριστη"
     if "back_image_url" not in df.columns:
       df["back_image_url"] = (
           "https://via.placeholder.com/200/cccccc/ffffff?text=No+Back"
       )
-    if "condition" not in df.columns:
-      df["condition"] = "Άριστη"
   else:
     df = pd.DataFrame(
         columns=[
@@ -88,7 +104,6 @@ uploaded_csv = st.sidebar.file_uploader(
 if uploaded_csv is not None:
   try:
     imported_df = pd.read_csv(uploaded_csv)
-    imported_df["units"] = imported_df["units"].astype(str)
     imported_df.to_csv(CATALOG_FILE, index=False)
     st.sidebar.success("Το αρχείο φορτώθηκε επιτυχώς!")
     st.rerun()
@@ -182,22 +197,21 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
 
         new_row = {
             "id": new_id,
-            "code": new_code,
-            "title": new_title,
-            "month": new_month,
+            "code": str(new_code),
+            "title": str(new_title),
+            "month": str(new_month),
             "year": int(new_year),
             "units": str(new_units),
             "mintage": str(new_mintage),
-            "category": new_cat,
-            "condition": new_condition,
-            "image_url": front_path,
-            "back_image_url": back_path,
-            "owned": new_owned,
+            "category": str(new_cat),
+            "condition": str(new_condition),
+            "image_url": str(front_path),
+            "back_image_url": str(back_path),
+            "owned": bool(new_owned),
             "quantity": int(new_qty),
         }
 
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df["units"] = df["units"].astype(str)
         df.to_csv(CATALOG_FILE, index=False)
         st.success(f"Η κάρτα '{new_title}' προστέθηκε με επιτυχία!")
         st.rerun()
@@ -272,7 +286,6 @@ else:
         with img_c2:
           st.image(back_img, width=130, caption="Πίσω")
 
-        # Επισήμανση αν είναι φθαρμένη
         cond_str = str(row.get("condition", "Άριστη"))
         badge = " ⚠️ [Φθαρμένη]" if cond_str == "Φθαρμένη / Χτυπημένη" else ""
 
@@ -282,7 +295,7 @@ else:
             f" Κατάσταση: **{cond_str}**"
         )
 
-        current_owned = row["owned"]
+        current_owned = bool(row["owned"])
         new_owned = st.checkbox(
             "Την έχω", value=current_owned, key=f"owned_{row['id']}"
         )
@@ -296,7 +309,6 @@ else:
         if new_owned != current_owned or new_qty != row["quantity"]:
           df.loc[df["id"] == row["id"], "owned"] = new_owned
           df.loc[df["id"] == row["id"], "quantity"] = new_qty
-          df["units"] = df["units"].astype(str)
           df.to_csv(CATALOG_FILE, index=False)
 
         # --- ΕΠΕΞΕΡΓΑΣΙΑ / ΔΙΑΓΡΑΦΗ ---
@@ -377,35 +389,33 @@ else:
               delete_card = st.form_submit_button("🗑️ Διαγραφή")
 
             if save_edit:
-              df.loc[df["id"] == row["id"], "code"] = e_code
-              df.loc[df["id"] == row["id"], "title"] = e_title
-              df.loc[df["id"] == row["id"], "month"] = e_month
+              df.loc[df["id"] == row["id"], "code"] = str(e_code)
+              df.loc[df["id"] == row["id"], "title"] = str(e_title)
+              df.loc[df["id"] == row["id"], "month"] = str(e_month)
               df.loc[df["id"] == row["id"], "year"] = int(e_year)
               df.loc[df["id"] == row["id"], "units"] = str(e_units)
               df.loc[df["id"] == row["id"], "mintage"] = str(e_mintage)
-              df.loc[df["id"] == row["id"], "category"] = e_cat
-              df.loc[df["id"] == row["id"], "condition"] = e_cond
+              df.loc[df["id"] == row["id"], "category"] = str(e_cat)
+              df.loc[df["id"] == row["id"], "condition"] = str(e_cond)
 
               if e_front is not None:
                 front_path = os.path.join(IMAGES_DIR, "front_" + e_front.name)
                 with open(front_path, "wb") as f:
                   f.write(e_front.getbuffer())
-                df.loc[df["id"] == row["id"], "image_url"] = front_path
+                df.loc[df["id"] == row["id"], "image_url"] = str(front_path)
 
               if e_back is not None:
                 back_path = os.path.join(IMAGES_DIR, "back_" + e_back.name)
                 with open(back_path, "wb") as f:
                   f.write(e_back.getbuffer())
-                df.loc[df["id"] == row["id"], "back_image_url"] = back_path
+                df.loc[df["id"] == row["id"], "back_image_url"] = str(back_path)
 
-              df["units"] = df["units"].astype(str)
               df.to_csv(CATALOG_FILE, index=False)
               st.success("Οι αλλαγές αποθηκεύτηκαν!")
               st.rerun()
 
             if delete_card:
               df = df[df["id"] != row["id"]]
-              df["units"] = df["units"].astype(str)
               df.to_csv(CATALOG_FILE, index=False)
               st.success("Η κάρτα διαγράφηκε!")
               st.rerun()
