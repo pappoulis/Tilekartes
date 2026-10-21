@@ -67,21 +67,19 @@ df = load_data()
 
 st.title("📞 Η Συλλογή μου από Ελληνικές Τηλεκάρτες")
 
-# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ (ΕΞΑΓΩΓΗ & ΕΙΣΑΓΩΓΗ) ---
+# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΑΝΑΖΗΤΗΣΗ / ΦΙΛΤΡΑ ΣΤΟ SIDEBAR ---
 st.sidebar.header("📁 Διαχείριση Αρχείου")
 
 csv_data = df.to_csv(index=False).encode("utf-8")
 st.sidebar.download_button(
-    label="📥 Κατέβασμα Αρχείου Συλλογής (CSV)",
+    label="📥 Κατέβασμα Αρχείου (CSV)",
     data=csv_data,
     file_name="my_catalog.csv",
     mime="text/csv",
 )
 
-st.sidebar.markdown("---")
-
 uploaded_csv = st.sidebar.file_uploader(
-    "📤 Φόρτωση Συλλογής από Αρχείο (CSV)", type=["csv"]
+    "📤 Φόρτωση Αρχείου (CSV)", type=["csv"]
 )
 
 if uploaded_csv is not None:
@@ -93,6 +91,26 @@ if uploaded_csv is not None:
     st.rerun()
   except Exception as e:
     st.sidebar.error("Πρόκυψε σφάλμα κατά τη φόρτωση.")
+
+st.sidebar.markdown("---")
+st.sidebar.header("🔍 Αναζήτηση & Ταξινόμηση")
+
+# Πεδίο Αναζήτησης
+search_query = st.sidebar.text_input("Αναζήτηση (Κωδικός ή Τίτλος)")
+
+# Επιλογή Ταξινόμησης
+sort_option = st.sidebar.selectbox(
+    "Ταξινόμηση κατά:",
+    [
+        "Χρονολογική (Παλαιότερες πρώτα)",
+        "Χρονολογική (Νεότερες πρώτα)",
+        "Αλφαβητικά (Τίτλος A-Ω)",
+        "Αλφαβητικά (Κωδικός)",
+    ],
+)
+
+# Φίλτρο εμφάνισης (Όλες ή μόνο όσες έχω)
+filter_owned = st.sidebar.checkbox("Εμφάνιση μόνο όσων έχω στη συλλογή")
 
 st.markdown("---")
 
@@ -176,23 +194,49 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
 
 st.markdown("---")
 
+# --- ΕΦΑΡΜΟΓΗ ΦΙΛΤΡΩΝ & ΤΑΞΙΝΟΜΗΣΗΣ ---
+filtered_df = df.copy()
+
+# 1. Φιλτράρισμα με βάση την αναζήτηση
+if search_query:
+  query = search_query.lower()
+  filtered_df = filtered_df[
+      filtered_df["code"].str.lower().str.contains(query, na=False)
+      | filtered_df["title"].str.lower().str.contains(query, na=False)
+  ]
+
+# 2. Φιλτράρισμα για το αν την έχω
+if filter_owned:
+  filtered_df = filtered_df[filtered_df["owned"] == True]
+
+# 3. Ταξινόμηση
+if sort_option == "Χρονολογική (Παλαιότερες πρώτα)":
+  filtered_df = filtered_df.sort_values(by="year", ascending=True)
+elif sort_option == "Χρονολογική (Νεότερες πρώτα)":
+  filtered_df = filtered_df.sort_values(by="year", ascending=False)
+elif sort_option == "Αλφαβητικά (Τίτλος A-Ω)":
+  filtered_df = filtered_df.sort_values(by="title", ascending=True)
+elif sort_option == "Αλφαβητικά (Κωδικός)":
+  filtered_df = filtered_df.sort_values(by="code", ascending=True)
+
 # --- ΕΜΦΑΝΙΣΗ ΚΑΡΤΩΝ ---
 st.subheader("🖼️ Οι Κάρτες σου")
 
-if df.empty:
+if filtered_df.empty:
   st.info(
-      "Δεν υπάρχουν ακόμα κάρτες. Πρόσθεσε μία παραπάνω ή φόρτωσε ένα αρχείο"
-      " CSV!"
+      "Δεν βρέθηκαν κάρτες που να ταιριάζουν με τα κριτήρια αναζήτησης."
   )
 else:
   cols_per_row = 3
-  rows = [df.iloc[i : i + cols_per_row] for i in range(0, len(df), cols_per_row)]
+  rows = [
+      filtered_df.iloc[i : i + cols_per_row]
+      for i in range(0, len(filtered_df), cols_per_row)
+  ]
 
   for row_chunk in rows:
     cols = st.columns(cols_per_row)
     for idx, (_, row) in enumerate(row_chunk.iterrows()):
       with cols[idx]:
-        # Ασφαλής έλεγχος εικόνας για να μην κρασάρει αν λείπει το αρχείο
         front_img = (
             row["image_url"]
             if (
@@ -290,7 +334,7 @@ else:
             e_front = st.file_uploader(
                 "Νέα Μπροστινή Όψη",
                 type=["jpg", "png", "jpeg"],
-                key=f"ef_{row['id']}",
+                key=fef_{row['id']} if False else f"ef_{row['id']}",
             )
             e_back = st.file_uploader(
                 "Νέα Πίσω Όψη",
@@ -322,7 +366,9 @@ else:
               if e_back is not None:
                 back_path = os.path.join(IMAGES_DIR, "back_" + e_back.name)
                 with open(back_path, "wb") as f:
-                  f.write(e_back.getbuffer())
+                  f.write(back_back.getbuffer()) if False else f.write(
+                      e_back.getbuffer()
+                  )
                 df.loc[df["id"] == row["id"], "back_image_url"] = back_path
 
               df["units"] = df["units"].astype(str)
