@@ -27,6 +27,8 @@ MONTHS_LIST = [
     "Άγνωστος / Δεν αναγράφεται",
 ]
 
+CONDITION_OPTIONS = ["Άριστη", "Φθαρμένη / Χτυπημένη", "Μέτρια"]
+
 
 def load_data():
   if os.path.exists(CATALOG_FILE):
@@ -40,10 +42,10 @@ def load_data():
       df["back_image_url"] = (
           "https://via.placeholder.com/200/cccccc/ffffff?text=No+Back"
       )
+    if "condition" not in df.columns:
+      df["condition"] = "Άριστη"
   else:
-    data = []
     df = pd.DataFrame(
-        data,
         columns=[
             "id",
             "code",
@@ -53,11 +55,12 @@ def load_data():
             "units",
             "mintage",
             "category",
+            "condition",
             "image_url",
             "back_image_url",
             "owned",
             "quantity",
-        ],
+        ]
     )
     df.to_csv(CATALOG_FILE, index=False)
   return df
@@ -109,8 +112,11 @@ sort_option = st.sidebar.selectbox(
     ],
 )
 
-# Φίλτρο εμφάνισης (Όλες ή μόνο όσες έχω)
+# Φίλτρα εμφάνισης
 filter_owned = st.sidebar.checkbox("Εμφάνιση μόνο όσων έχω στη συλλογή")
+filter_damaged = st.sidebar.checkbox(
+    "⚠️ Εμφάνιση μόνο Φθαρμένων (για αντικατάσταση)"
+)
 
 st.markdown("---")
 
@@ -132,6 +138,9 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       )
       new_mintage = st.text_input("Τιράζ (π.χ. 50.000)", value="Άγνωστο")
       new_cat = st.selectbox("Κατηγορία", ["Μαγνητικές", "Chip", "Χρονοκάρτα"])
+      new_condition = st.selectbox(
+          "Κατάσταση Κάρτας", CONDITION_OPTIONS, index=0
+      )
 
     f_col1, f_col2 = st.columns(2)
     with f_col1:
@@ -180,6 +189,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
             "units": str(new_units),
             "mintage": str(new_mintage),
             "category": new_cat,
+            "condition": new_condition,
             "image_url": front_path,
             "back_image_url": back_path,
             "owned": new_owned,
@@ -206,6 +216,11 @@ if search_query:
 
 if filter_owned:
   filtered_df = filtered_df[filtered_df["owned"] == True]
+
+if filter_damaged:
+  filtered_df = filtered_df[
+      filtered_df["condition"] == "Φθαρμένη / Χτυπημένη"
+  ]
 
 if sort_option == "Χρονολογική (Παλαιότερες πρώτα)":
   filtered_df = filtered_df.sort_values(by="year", ascending=True)
@@ -257,10 +272,14 @@ else:
         with img_c2:
           st.image(back_img, width=130, caption="Πίσω")
 
-        st.markdown(f"**{row['code']} - {row['title']}**")
+        # Επισήμανση αν είναι φθαρμένη
+        cond_str = str(row.get("condition", "Άριστη"))
+        badge = " ⚠️ [Φθαρμένη]" if cond_str == "Φθαρμένη / Χτυπημένη" else ""
+
+        st.markdown(f"**{row['code']} - {row['title']}**{badge}")
         st.caption(
             f"📅 {row['month']} {row['year']} | 🔢 Μονάδες: {row['units']} |"
-            f" Τιράζ: {row['mintage']} | {row['category']}"
+            f" Κατάσταση: **{cond_str}**"
         )
 
         current_owned = row["owned"]
@@ -328,6 +347,18 @@ else:
                 "Κατηγορία", cat_options, index=c_index, key=f"c_{row['id']}"
             )
 
+            cond_idx = (
+                CONDITION_OPTIONS.index(cond_str)
+                if cond_str in CONDITION_OPTIONS
+                else 0
+            )
+            e_cond = st.selectbox(
+                "Κατάσταση Κάρτας",
+                CONDITION_OPTIONS,
+                index=cond_idx,
+                key=f"cond_{row['id']}",
+            )
+
             e_front = st.file_uploader(
                 "Νέα Μπροστινή Όψη",
                 type=["jpg", "png", "jpeg"],
@@ -353,6 +384,7 @@ else:
               df.loc[df["id"] == row["id"], "units"] = str(e_units)
               df.loc[df["id"] == row["id"], "mintage"] = str(e_mintage)
               df.loc[df["id"] == row["id"], "category"] = e_cat
+              df.loc[df["id"] == row["id"], "condition"] = e_cond
 
               if e_front is not None:
                 front_path = os.path.join(IMAGES_DIR, "front_" + e_front.name)
