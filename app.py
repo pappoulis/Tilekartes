@@ -14,7 +14,6 @@ if not os.path.exists(IMAGES_DIR):
 MONTHS_NUM_LIST = [f"{i:02d}" for i in range(1, 13)] + ["--"]
 CONDITION_OPTIONS = ["Άριστη", "Φθαρμένη / Χτυπημένη", "Μέτρια"]
 
-# Χάρτης μετατροπής ονομάτων μηνών σε διψήφιους αριθμούς
 MONTH_MAPPING = {
     "Ιανουάριος": "01",
     "Φεβρουάριος": "02",
@@ -47,7 +46,6 @@ def load_data():
     else:
       df["owned"] = True
 
-    # Αυτόματη μετατροπή παλιών μηνών σε διψήφιους αριθμούς
     if "month" in df.columns:
       df["month"] = (
           df["month"]
@@ -56,7 +54,6 @@ def load_data():
     else:
       df["month"] = "--"
 
-    # Αυτόματη μετατροπή τετραψήφιων ετών σε διψήφια (π.χ. 1993 -> 93)
     if "year" in df.columns:
       df["year"] = df["year"].astype(str).str.strip().str[-2:]
     else:
@@ -68,12 +65,7 @@ def load_data():
       df["condition"] = "Άριστη"
     if "category" not in df.columns:
       df["category"] = "Chip"
-    if "back_image_url" not in df.columns:
-      df["back_image_url"] = (
-          "https://via.placeholder.com/200/cccccc/ffffff?text=No+Back"
-      )
 
-    # Αποθήκευση των διορθωμένων δεδομένων πίσω στο CSV
     df.to_csv(CATALOG_FILE, index=False)
   else:
     df = pd.DataFrame(
@@ -101,7 +93,7 @@ df = load_data()
 
 st.title("📞 Η Συλλογή μου από Ελληνικές Τηλεκάρτες")
 
-# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΑΝΑΖΗΤΗΣΗ / ΦΙΛΤΡΑ ΣΤΟ SIDEBAR ---
+# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΑΝΑΖΗΤΗΣΗ ---
 st.sidebar.header("📁 Διαχείριση Αρχείου")
 
 csv_data = df.to_csv(index=False).encode("utf-8")
@@ -159,9 +151,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       with c_m:
         new_month = st.selectbox("Μήνας (ΜΜ)", MONTHS_NUM_LIST, index=9)
       with c_y:
-        new_year = st.text_input(
-            "Έτος (π.χ. 93)", value="93", max_chars=2
-        )
+        new_year = st.text_input("Έτος (π.χ. 93)", value="93", max_chars=2)
     with col3:
       new_units = st.selectbox(
           "Μονάδες", ["100", "500", "1000", "Άλλο"], index=0
@@ -196,18 +186,25 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       if not new_code or not new_title:
         st.error("Παρακαλώ συμπλήρωσε τουλάχιστον Κωδικό και Τίτλο!")
       else:
+        # Αποθηκεύουμε απλά το όνομα του αρχείου για να ταιριάζει παντού
         front_path = (
-            "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
+            f"images/front_{front_file.name}"
+            if front_file is not None
+            else "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
         )
         if front_file is not None:
-          front_path = os.path.join(IMAGES_DIR, "front_" + front_file.name)
-          with open(front_path, "wb") as f:
+          os.makedirs(IMAGES_DIR, exist_ok=True)
+          with open(os.path.join(IMAGES_DIR, f"front_{front_file.name}"), "wb") as f:
             f.write(front_file.getbuffer())
 
-        back_path = "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
+        back_path = (
+            f"images/back_{back_file.name}"
+            if back_file is not None
+            else "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
+        )
         if back_file is not None:
-          back_path = os.path.join(IMAGES_DIR, "back_" + back_file.name)
-          with open(back_path, "wb") as f:
+          os.makedirs(IMAGES_DIR, exist_ok=True)
+          with open(os.path.join(IMAGES_DIR, f"back_{back_file.name}"), "wb") as f:
             f.write(back_file.getbuffer())
 
         new_id = int(df["id"].max() + 1) if not df.empty else 1
@@ -217,7 +214,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
             "code": str(new_code),
             "title": str(new_title),
             "month": str(new_month),
-            "year": str(new_year).zfill(2),
+            "year": str(new_year),
             "units": str(new_units),
             "mintage": str(new_mintage),
             "category": str(new_cat),
@@ -287,22 +284,22 @@ else:
     cols = st.columns(cols_per_row)
     for idx, (_, row) in enumerate(row_chunk.iterrows()):
       with cols[idx]:
-        front_img = (
-            row["image_url"]
-            if (
-                str(row["image_url"]).startswith("http")
-                or os.path.exists(str(row["image_url"]))
-            )
-            else "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
-        )
-        back_img = (
-            row["back_image_url"]
-            if (
-                str(row["back_image_url"]).startswith("http")
-                or os.path.exists(str(row["back_image_url"]))
-            )
-            else "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
-        )
+        # Έξυπνος έλεγχος εικόνας για να εμφανίζεται σωστά online
+        f_url = str(row["image_url"])
+        if f_url.startswith("http") or os.path.exists(f_url):
+          front_img = f_url
+        elif os.path.exists(os.path.basename(f_url)):
+          front_img = os.path.basename(f_url)
+        else:
+          front_img = "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
+
+        b_url = str(row["back_image_url"])
+        if b_url.startswith("http") or os.path.exists(b_url):
+          back_img = b_url
+        elif os.path.exists(os.path.basename(b_url)):
+          back_img = os.path.basename(b_url)
+        else:
+          back_img = "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
 
         img_c1, img_c2 = st.columns(2)
         with img_c1:
@@ -432,14 +429,16 @@ else:
               df.loc[df["id"] == row["id"], "condition"] = str(e_cond)
 
               if e_front is not None:
-                front_path = os.path.join(IMAGES_DIR, "front_" + e_front.name)
-                with open(front_path, "wb") as f:
+                front_path = f"images/front_{e_front.name}"
+                os.makedirs(IMAGES_DIR, exist_ok=True)
+                with open(os.path.join(IMAGES_DIR, f"front_{e_front.name}"), "wb") as f:
                   f.write(e_front.getbuffer())
                 df.loc[df["id"] == row["id"], "image_url"] = str(front_path)
 
               if e_back is not None:
-                back_path = os.path.join(IMAGES_DIR, "back_" + e_back.name)
-                with open(back_path, "wb") as f:
+                back_path = f"images/back_{e_back.name}"
+                os.makedirs(IMAGES_DIR, exist_ok=True)
+                with open(os.path.join(IMAGES_DIR, f"back_{e_back.name}"), "wb") as f:
                   f.write(e_back.getbuffer())
                 df.loc[df["id"] == row["id"], "back_image_url"] = str(back_path)
 
