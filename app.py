@@ -186,28 +186,28 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       if not new_code or not new_title:
         st.error("Παρακαλώ συμπλήρωσε τουλάχιστον Κωδικό και Τίτλο!")
       else:
-        # Αποθηκεύουμε απλά το όνομα του αρχείου για να ταιριάζει παντού
-        front_path = (
-            f"images/front_{front_file.name}"
-            if front_file is not None
-            else "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
-        )
+        new_id = int(df["id"].max() + 1) if not df.empty else 1
+
+        # Αυτόματη μετονομασία βάσει ID (π.χ. front_1.jpg, back_1.jpg)
+        front_path = "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
         if front_file is not None:
           os.makedirs(IMAGES_DIR, exist_ok=True)
-          with open(os.path.join(IMAGES_DIR, f"front_{front_file.name}"), "wb") as f:
+          ext = front_file.name.split(".")[-1]
+          front_filename = f"front_{new_id}.{ext}"
+          front_path = os.path.join(IMAGES_DIR, front_filename)
+          with open(front_path, "wb") as f:
             f.write(front_file.getbuffer())
+          front_path = f"images/{front_filename}"
 
-        back_path = (
-            f"images/back_{back_file.name}"
-            if back_file is not None
-            else "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
-        )
+        back_path = "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
         if back_file is not None:
           os.makedirs(IMAGES_DIR, exist_ok=True)
-          with open(os.path.join(IMAGES_DIR, f"back_{back_file.name}"), "wb") as f:
+          ext = back_file.name.split(".")[-1]
+          back_filename = f"back_{new_id}.{ext}"
+          back_path = os.path.join(IMAGES_DIR, back_filename)
+          with open(back_path, "wb") as f:
             f.write(back_file.getbuffer())
-
-        new_id = int(df["id"].max() + 1) if not df.empty else 1
+          back_path = f"images/{back_filename}"
 
         new_row = {
             "id": new_id,
@@ -284,22 +284,22 @@ else:
     cols = st.columns(cols_per_row)
     for idx, (_, row) in enumerate(row_chunk.iterrows()):
       with cols[idx]:
-        # Έξυπνος έλεγχος εικόνας για να εμφανίζεται σωστά online
-        f_url = str(row["image_url"])
-        if f_url.startswith("http") or os.path.exists(f_url):
-          front_img = f_url
-        elif os.path.exists(os.path.basename(f_url)):
-          front_img = os.path.basename(f_url)
-        else:
-          front_img = "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
-
-        b_url = str(row["back_image_url"])
-        if b_url.startswith("http") or os.path.exists(b_url):
-          back_img = b_url
-        elif os.path.exists(os.path.basename(b_url)):
-          back_img = os.path.basename(b_url)
-        else:
-          back_img = "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
+        front_img = (
+            row["image_url"]
+            if (
+                str(row["image_url"]).startswith("http")
+                or os.path.exists(str(row["image_url"]))
+            )
+            else "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
+        )
+        back_img = (
+            row["back_image_url"]
+            if (
+                str(row["back_image_url"]).startswith("http")
+                or os.path.exists(str(row["back_image_url"]))
+            )
+            else "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
+        )
 
         img_c1, img_c2 = st.columns(2)
         with img_c1:
@@ -428,19 +428,28 @@ else:
               df.loc[df["id"] == row["id"], "category"] = str(e_cat)
               df.loc[df["id"] == row["id"], "condition"] = str(e_cond)
 
+              card_id = row["id"]
               if e_front is not None:
-                front_path = f"images/front_{e_front.name}"
+                ext = e_front.name.split(".")[-1]
+                front_filename = f"front_{card_id}.{ext}"
+                front_path = os.path.join(IMAGES_DIR, front_filename)
                 os.makedirs(IMAGES_DIR, exist_ok=True)
-                with open(os.path.join(IMAGES_DIR, f"front_{e_front.name}"), "wb") as f:
+                with open(front_path, "wb") as f:
                   f.write(e_front.getbuffer())
-                df.loc[df["id"] == row["id"], "image_url"] = str(front_path)
+                df.loc[df["id"] == card_id, "image_url"] = (
+                    f"images/{front_filename}"
+                )
 
               if e_back is not None:
-                back_path = f"images/back_{e_back.name}"
+                ext = e_back.name.split(".")[-1]
+                back_filename = f"back_{card_id}.{ext}"
+                back_path = os.path.join(IMAGES_DIR, back_filename)
                 os.makedirs(IMAGES_DIR, exist_ok=True)
-                with open(os.path.join(IMAGES_DIR, f"back_{e_back.name}"), "wb") as f:
+                with open(back_path, "wb") as f:
                   f.write(e_back.getbuffer())
-                df.loc[df["id"] == row["id"], "back_image_url"] = str(back_path)
+                df.loc[df["id"] == card_id, "back_image_url"] = (
+                    f"images/{back_filename}"
+                )
 
               df.to_csv(CATALOG_FILE, index=False)
               st.success("Οι αλλαγές αποθηκεύτηκαν!")
