@@ -45,3 +45,19 @@ id,code,title,year,units,category,image_url,owned,quantity,month,back_image_url,
 46,x0089,Παξοί,95,100,Chip,images\front_x0089c.jpg,True,1,01,images\back_x0089d.jpg,400000,Άριστη
 47,x0091,Ζάκυνθος,95,100,Chip,images\front_x0091c.jpg,True,1,01,images\back_x0091d.jpg,412000,Άριστη
 48,x0093,Τηλεειδοποίηση,95,100,Chip,images\front_x0093c.jpg,True,1,01,images\back_x0093d.jpg,1000000,Άριστη
+49,x0097,25η Μαρτίου,95,100,Chip,images\front_x0097c.jpg,True,1,02,images\back_x0097d.jpg,540000,Άριστη
+50,x0099,Λευκάδα,95,100,Chip,images\front_x0099c.jpg,True,1,02,images\back_x0099d.jpg,244000,Άριστη
+51,x0055,59η Δ.Ε.Θ.,94,100,Chip,images\front_x0055c.jpg,True,1,09,images\back_x0055d.jpg,250000,Άριστη
+52,x0074,Καφές κλειδιά,94,100,Chip,images\front_x0074c.jpg,True,1,11,images\back_x0074d.jpg,104000,Μέτρια
+53,x0103,Λέσβος,95,100,Chip,images\front_x0103c.jpg,True,1,03,images\back_x0103d.jpg,300000,Άριστη
+54,x0106,Ευαγγελισμός,95,100,Chip,images\front_x0106c.jpg,True,1,03,images\back_x0106d.jpg,1000000,Άριστη
+55,x0107,Άνοιξη,95,100,Chip,images\front_x0107c.jpg,True,1,04,images\back_x0107d.jpg,480000,Άριστη
+56,x0108,Γεφύρι Πλάκας,95,100,Chip,images\front_x0108c.jpg,True,1,04,images\back_x0108d.jpg,550000,Άριστη
+57,x0110,Πάσχα,95,100,Chip,images\front_x0110c.jpg,True,1,04,images\back_x0110d.jpg,300000,Άριστη
+58,x0116,Αιγαίο,95,100,Chip,images\front_x0116c.jpg,True,1,05,images\back_x0116d.jpg,2000000,Άριστη
+59,x0138,ISDN,95,100,Chip,images\front_x0138c.jpg,True,1,11,images\back_x0138d.jpg,500000,Άριστη
+60,x0139,Φασιανός,95,100,Chip,images\front_x0139c.jpg,True,1,11,images\back_x0139d.jpg,500000,Άριστη
+61,x0141,Αιμοδοσία,95,100,Chip,images\front_x0141c.jpg,True,1,11,images\back_x0141d.jpg,200000,Άριστη
+62,x0142,Νίσυρος,95,100,Chip,images\front_x0142c.jpg,True,1,11,images\back_x0142d.jpg,400000,Άριστη
+63,x0143,Σαντορίνη,95,100,Chip,images\front_x0143c.jpg,True,1,11,images\back_x0143d.jpg,2000000,Άριστη
+64,x0144,Διδυμότειχο,95,100,Chip,images\front_x0144c.jpg,True,1,11,images\back_x0144d.jpg,1000000,Άριστη
