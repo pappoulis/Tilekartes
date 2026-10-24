@@ -29,6 +29,44 @@ MONTH_MAPPING = {
     "Δεκέμβριος": "12",
 }
 
+# Επίσημα συνολικά νούμερα ανά έτος που έδωσες
+TOTAL_CARDS_PER_YEAR = {
+    "1992": 3,
+    "1993": 34,
+    "1994": 69,
+    "1995": 62,
+    "1996": 160,
+    "1997": 184,
+    "1998": 200,
+    "1999": 214,
+    "2000": 195,
+    "2001": 411,
+    "2002": 185,
+    "2003": 188,
+    "2004": 146,
+    "2005": 65,
+    "2006": 110,
+    "2007": 93,
+    "2008": 73,
+    "2009": 120,
+    "2010": 70,
+    "2011": 51,
+    "2012": 51,
+    "2013": 43,
+    "2014": 36,
+    "2015": 41,
+    "2016": 24,
+    "2017": 24,
+    "2018": 27,
+    "2019": 32,
+    "2020": 9,
+    "2021": 13,
+    "2022": 8,
+    "2023": 4,
+    "2024": 4,
+    "2025": 3,
+}
+
 
 def load_data():
   if os.path.exists(CATALOG_FILE):
@@ -55,7 +93,7 @@ def load_data():
       df["month"] = "--"
 
     if "year" in df.columns:
-      df["year"] = df["year"].astype(str).str.strip().str[-2:]
+      df["year"] = df["year"].astype(str).str.strip()
     else:
       df["year"] = "93"
 
@@ -93,7 +131,7 @@ df = load_data()
 
 st.title("📞 Η Συλλογή μου από Ελληνικές Τηλεκάρτες")
 
-# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΑΝΑΖΗΤΗΣΗ ---
+# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΑΝΑΖΗΤΗΣΗ ΣΤΟ SIDEBAR ---
 st.sidebar.header("📁 Διαχείριση Αρχείου")
 
 csv_data = df.to_csv(index=False).encode("utf-8")
@@ -138,6 +176,40 @@ filter_damaged = st.sidebar.checkbox(
 )
 filter_medium = st.sidebar.checkbox("🟡 Εμφάνιση μόνο Μέτριων")
 
+# --- ΣΤΑΤΙΣΤΙΚΑ ΑΝΑ ΕΤΟΣ ΣΤΟ ΚΑΤΩ ΜΕΡΟΣ ΤΟΥ SIDEBAR ---
+st.sidebar.markdown("---")
+with st.sidebar.expander("📊 Στατιστικά Συλλογής ανά Έτος", expanded=False):
+  # Υπολογισμός γενικού συνόλου
+  owned_df = df[df["owned"] == True] if not df.empty else df
+  total_collection_count = len(owned_df)
+  total_official_count = sum(TOTAL_CARDS_PER_YEAR.values())
+
+  st.markdown(
+      f"**Γενικό Σύνολο:** `{total_collection_count} /"
+      f" {total_official_count}`"
+  )
+  st.markdown("---")
+
+  # Μετατροπή διψήφιων ετών σε τετραψήφια για τη σύγκριση (π.χ. '93' -> '1993')
+  def normalize_year(y):
+    y_str = str(y).strip()
+    if len(y_str) == 2:
+      return "19" + y_str if int(y_str) > 50 else "20" + y_str
+    return y_str
+
+
+  if not df.empty:
+    temp_df = df.copy()
+    temp_df["norm_year"] = temp_df["year"].apply(normalize_year)
+    owned_temp_df = temp_df[temp_df["owned"] == True]
+    counts_per_year = owned_temp_df["norm_year"].value_counts()
+  else:
+    counts_per_year = pd.Series(dtype=int)
+
+  for year_str, official_total in TOTAL_CARDS_PER_YEAR.items():
+    user_count = int(counts_per_year.get(year_str, 0))
+    st.text(f"{year_str}: {user_count} / {official_total}")
+
 st.markdown("---")
 
 # --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ ---
@@ -152,7 +224,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       with c_m:
         new_month = st.selectbox("Μήνας (ΜΜ)", MONTHS_NUM_LIST, index=9)
       with c_y:
-        new_year = st.text_input("Έτος (π.χ. 93)", value="93", max_chars=2)
+        new_year = st.text_input("Έτος (π.χ. 1993 ή 93)", value="93", max_chars=4)
     with col3:
       new_units = st.selectbox(
           "Μονάδες", ["100", "500", "1000", "Άλλο"], index=0
@@ -364,12 +436,8 @@ else:
               )
 
             with ey_col:
-              y_str = str(row["year"]).strip()[-2:]
               e_year = st.text_input(
-                  "Έτος (ΕΕ)",
-                  value=y_str,
-                  max_chars=2,
-                  key=f"y_{row['id']}",
+                  "Έτος", value=str(row["year"]), max_chars=4, key=f"y_{row['id']}"
               )
 
             units_options = ["100", "500", "1000", "Άλλο"]
@@ -430,7 +498,7 @@ else:
               df.loc[df["id"] == row["id"], "code"] = str(e_code)
               df.loc[df["id"] == row["id"], "title"] = str(e_title)
               df.loc[df["id"] == row["id"], "month"] = str(e_month)
-              df.loc[df["id"] == row["id"], "year"] = str(e_year).zfill(2)
+              df.loc[df["id"] == row["id"], "year"] = str(e_year)
               df.loc[df["id"] == row["id"], "units"] = str(e_units)
               df.loc[df["id"] == row["id"], "mintage"] = str(e_mintage)
               df.loc[df["id"] == row["id"], "category"] = str(e_cat)
