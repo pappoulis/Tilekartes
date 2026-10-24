@@ -136,6 +136,7 @@ filter_owned = st.sidebar.checkbox("Εμφάνιση μόνο όσων έχω σ
 filter_damaged = st.sidebar.checkbox(
     "⚠️ Εμφάνιση μόνο Φθαρμένων (για αντικατάσταση)"
 )
+filter_medium = st.sidebar.checkbox("🟡 Εμφάνιση μόνο Μέτριων")
 
 st.markdown("---")
 
@@ -188,7 +189,6 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       else:
         new_id = int(df["id"].max() + 1) if not df.empty else 1
 
-        # Αυτόματη μετονομασία βάσει ID (π.χ. front_1.jpg, back_1.jpg)
         front_path = "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
         if front_file is not None:
           os.makedirs(IMAGES_DIR, exist_ok=True)
@@ -253,6 +253,9 @@ if filter_damaged:
       filtered_df["condition"] == "Φθαρμένη / Χτυπημένη"
   ]
 
+if filter_medium:
+  filtered_df = filtered_df[filtered_df["condition"] == "Μέτρια"]
+
 if sort_option == "Χρονολογική (Παλαιότερες πρώτα)":
   filtered_df = filtered_df.sort_values(
       by=["year", "month"], ascending=[True, True]
@@ -308,7 +311,12 @@ else:
           st.image(back_img, width=130, caption="Πίσω")
 
         cond_str = str(row.get("condition", "Άριστη"))
-        badge = " ⚠️ [Φθαρμένη]" if cond_str == "Φθαρμένη / Χτυπημένη" else ""
+        if cond_str == "Φθαρμένη / Χτυπημένη":
+          badge = " ⚠️ [Φθαρμένη]"
+        elif cond_str == "Μέτρια":
+          badge = " 🟡 [Μέτρια]"
+        else:
+          badge = ""
 
         date_str = f"{row['month']}/{row['year']}"
 
