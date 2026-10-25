@@ -1,13 +1,13 @@
 id,code,title,year,units,category,image_url,owned,quantity,month,back_image_url,mintage,condition
-3,m001,Μύκονος 1 μύλος,1992,500,Chip,images\front_εικόνα_Viber_2026-04-03_16-51-56-562.jpg,True,1,10,images/back_3.jpg,100000,Φθαρμένη / Χτυπημένη
-4,x0002,Παρθενών,1992,100,Chip,images\front_x0002c.jpg,True,1,10,images\back_x0002d.jpg,200000,Άριστη
-5,m002,Μύκονος 2 μύλος,1993,500,Chip,images\front_m002c.jpg,True,1,01,images\back_m002d.jpg,64000,Άριστη
-6,x0001,Βεργίνα,1992,100,Chip,images\front_x0001c.jpg,False,1,09,images\back_x0001d.jpg,32000,Άριστη
-7,m003,Αλεξανδρούπολη,1993,500,Chip,images\front_m003c.jpg,True,1,02,images\back_m003d.jpg,64000,Άριστη
-8,y001,Ρόδος,1993,1000,Chip,images\front_y001c.jpg,True,1,02,images\back_y001d.jpg,64000,Άριστη
-9,x0006,Έδεσσα,1993,100,Chip,images\front_x0006c.jpg,True,1,04,images\back_x0006d.jpg,960000,Άριστη
-10,m005,Σαντορίνη,1993,500,Chip,images\front_m005c.jpg,True,1,05,images\back_m005d.jpg,200000,Άριστη
-11,y005,Εθνοκάρτα,1993,1000,Chip,images\front_y005c.jpg,True,1,05,images\back_y005d.jpg,50000,Φθαρμένη / Χτυπημένη
+3,m001,Μύκονος 1 μύλος,1992,500,Chip,images/front_3.jpg,True,1,10,images/back_3.jpg,100000,Φθαρμένη / Χτυπημένη
+4,x0002,Παρθενών,1992,100,Chip,images/front_4.jpg,True,1,10,images/back_4.jpg,200000,Άριστη
+5,m002,Μύκονος 2 μύλος,1993,500,Chip,images/front_5.jpg,True,1,01,images/back_5.jpg,64000,Άριστη
+6,x0001,Βεργίνα,1992,100,Chip,images/front_6.jpg,False,1,09,images/back_6.jpg,32000,Άριστη
+7,m003,Αλεξανδρούπολη,1993,500,Chip,images/front_7.jpg,True,1,02,images/back_7.jpg,64000,Άριστη
+8,y001,Ρόδος,1993,1000,Chip,images/front_8.jpg,True,1,02,images/back_8.jpg,64000,Άριστη
+9,x0006,Έδεσσα,1993,100,Chip,images/front_9.jpg,True,1,04,images/back_9.jpg,960000,Άριστη
+10,m005,Σαντορίνη,1993,500,Chip,images/front_10.jpg,True,1,05,images/back_10.jpg,200000,Άριστη
+11,y005,Εθνοκάρτα,1993,1000,Chip,images/front_11.jpg,True,1,05,images/back_11.jpg,50000,Φθαρμένη / Χτυπημένη
 12,x0011,Ναύπλιο,1993,100,Chip,images\front_x0011c.jpg,True,1,06,images\back_x0011d.jpg,704000,Άριστη
 13,x0012,Ιωάννινα,1993,100,Chip,images\front_x0012c.jpg,True,1,07,images\back_x0012d.jpg,960000,Άριστη
 14,x0013,Πάτρα,1993,100,Chip,images\front_x0013c.jpg,True,1,08,images\back_x0013d.jpg,910000,Άριστη
