@@ -13,6 +13,7 @@ if not os.path.exists(IMAGES_DIR):
 
 MONTHS_NUM_LIST = [f"{i:02d}" for i in range(1, 13)] + ["--"]
 CONDITION_OPTIONS = ["Άριστη", "Φθαρμένη / Χτυπημένη", "Μέτρια"]
+UNITS_OPTIONS = ["100", "200", "500", "1000", "Άλλο"]
 
 MONTH_MAPPING = {
     "Ιανουάριος": "01",
@@ -29,55 +30,54 @@ MONTH_MAPPING = {
     "Δεκέμβριος": "12",
 }
 
-TOTAL_CARDS_PER_YEAR = {
-    "1992": 3,
-    "1993": 34,
-    "1994": 69,
-    "1995": 62,
-    "1996": 160,
-    "1997": 184,
-    "1998": 200,
-    "1999": 214,
-    "2000": 195,
-    "2001": 411,
-    "2002": 185,
-    "2003": 188,
-    "2004": 146,
-    "2005": 65,
-    "2006": 110,
-    "2007": 93,
-    "2008": 73,
-    "2009": 120,
-    "2010": 70,
-    "2011": 51,
-    "2012": 51,
-    "2013": 43,
-    "2014": 36,
-    "2015": 41,
-    "2016": 24,
-    "2017": 24,
-    "2018": 27,
-    "2019": 32,
-    "2020": 9,
-    "2021": 13,
-    "2022": 8,
-    "2023": 4,
-    "2024": 4,
-    "2025": 3,
+# Επίσημα στοιχεία τιράζ / πλήθους ανά έτος για αυτόματη συμπλήρωση & πρόοδο
+OFFICIAL_DATA_BY_YEAR = {
+    "1992": {"total": 3, "mintage": "50.000"},
+    "1993": {"total": 34, "mintage": "50.000"},
+    "1994": {"total": 69, "mintage": "50.000"},
+    "1995": {"total": 62, "mintage": "50.000"},
+    "1996": {"total": 160, "mintage": "50.000"},
+    "1997": {"total": 184, "mintage": "50.000"},
+    "1998": {"total": 200, "mintage": "50.000"},
+    "1999": {"total": 214, "mintage": "50.000"},
+    "2000": {"total": 195, "mintage": "50.000"},
+    "2001": {"total": 411, "mintage": "50.000"},
+    "2002": {"total": 185, "mintage": "50.000"},
+    "2003": {"total": 188, "mintage": "50.000"},
+    "2004": {"total": 146, "mintage": "50.000"},
+    "2005": {"total": 65, "mintage": "50.000"},
+    "2006": {"total": 110, "mintage": "50.000"},
+    "2007": {"total": 93, "mintage": "50.000"},
+    "2008": {"total": 73, "mintage": "50.000"},
+    "2009": {"total": 120, "mintage": "50.000"},
+    "2010": {"total": 70, "mintage": "50.000"},
+    "2011": {"total": 51, "mintage": "50.000"},
+    "2012": {"total": 51, "mintage": "50.000"},
+    "2013": {"total": 43, "mintage": "50.000"},
+    "2014": {"total": 36, "mintage": "50.000"},
+    "2015": {"total": 41, "mintage": "50.000"},
+    "2016": {"total": 24, "mintage": "50.000"},
+    "2017": {"total": 24, "mintage": "50.000"},
+    "2018": {"total": 27, "mintage": "50.000"},
+    "2019": {"total": 32, "mintage": "50.000"},
+    "2020": {"total": 9, "mintage": "50.000"},
+    "2021": {"total": 13, "mintage": "50.000"},
+    "2022": {"total": 8, "mintage": "50.000"},
+    "2023": {"total": 4, "mintage": "50.000"},
+    "2024": {"total": 4, "mintage": "50.000"},
+    "2025": {"total": 3, "mintage": "50.000"},
 }
 
 
 def convert_year_to_4digits(y):
   y_str = str(y).strip()
-  # Αν είναι ήδη τετραψήφιο, το αφήνουμε
   if len(y_str) == 4 and y_str.isdigit():
     return y_str
-  # Αν είναι διψήφιο, το μετατρέπουμε σωστά σε 19xx ή 20xx
   if len(y_str) == 2 and y_str.isdigit():
     val = int(y_str)
-    if val > 50:  # π.χ. 92, 93, 99 γίνονται 1992, 1993, 1999
+    if val > 50:
       return "19" + y_str
-    else:  # π.χ. 00, 01, 15 γίνονται 2000, 2001, 2015
+    else:
       return "20" + y_str
   return y_str
 
@@ -106,7 +106,6 @@ def load_data():
     else:
       df["month"] = "--"
 
-    # Αυτόματη μετατροπή όλων των ετών σε τετραψήφια
     if "year" in df.columns:
       df["year"] = df["year"].apply(convert_year_to_4digits)
     else:
@@ -146,7 +145,7 @@ df = load_data()
 
 st.title("📞 Η Συλλογή μου από Ελληνικές Τηλεκάρτες")
 
-# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΑΝΑΖΗΤΗΣΗ ---
+# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΕΞΑΓΩΓΗ ΕΛΛΕΙΨΕΩΝ ---
 st.sidebar.header("📁 Διαχείριση Αρχείου")
 
 csv_data = df.to_csv(index=False).encode("utf-8")
@@ -170,10 +169,34 @@ if uploaded_csv is not None:
   except Exception as e:
     st.sidebar.error("Πρόκυψε σφάλμα κατά τη φόρτωση.")
 
+# --- ΕΞΑΓΩΓΗ WISHLIST / ΕΛΛΕΙΨΕΩΝ ---
 st.sidebar.markdown("---")
-st.sidebar.header("🔍 Αναζήτηση & Ταξινόμηση")
+st.sidebar.subheader("📋 Εξαγωγή Ζητούμενων (Wishlist)")
+if not df.empty:
+  wishlist_df = df[df["owned"] == False]
+  if not wishlist_df.empty:
+    wishlist_csv = wishlist_df[["code", "title", "year", "units"]].to_csv(
+        index=False
+    ).encode("utf-8")
+    st.sidebar.download_button(
+        label="📥 Κατέβασμα Λίστας Ελλείψεων",
+        data=wishlist_csv,
+        file_name="my_wishlist.csv",
+        mime="text/csv",
+    )
+  else:
+    st.sidebar.text("Δεν υπάρχουν καταχωρημένες ελλείψεις.")
 
-search_query = st.sidebar.text_input("Αναζήτηση (Κωδικός, Τίτλος ή Ημερομηνία)")
+st.sidebar.markdown("---")
+st.sidebar.header("🔍 Αναζήτηση & Φίλτρα")
+
+search_query = st.sidebar.text_input("Αναζήτηση (Κωδικός, Τίτλος)")
+
+# --- ΦΙΛΤΡΟ ΕΤΟΥΣ ---
+available_years = ["Όλα τα έτη"] + sorted(
+    list(OFFICIAL_DATA_BY_YEAR.keys()), reverse=True
+)
+selected_year_filter = st.sidebar.selectbox("📅 Φίλτρο ανά Έτος", available_years)
 
 sort_option = st.sidebar.selectbox(
     "Ταξινόμηση κατά:",
@@ -186,17 +209,20 @@ sort_option = st.sidebar.selectbox(
 )
 
 filter_owned = st.sidebar.checkbox("Εμφάνιση μόνο όσων έχω στη συλλογή")
+filter_wishlist = st.sidebar.checkbox("⭐ Εμφάνιση Wishlist (Ζητούμενες)")
 filter_damaged = st.sidebar.checkbox(
     "⚠️ Εμφάνιση μόνο Φθαρμένων (για αντικατάσταση)"
 )
 filter_medium = st.sidebar.checkbox("🟡 Εμφάνιση μόνο Μέτριων")
 
-# --- ΣΤΑΤΙΣΤΙΚΑ ΑΝΑ ΕΤΟΣ ΣΤΟ ΚΑΤΩ ΜΕΡΟΣ ΤΟΥ SIDEBAR ---
+# --- ΣΤΑΤΙΣΤΙΚΑ & PROGRESS BARS ΑΝΑ ΕΤΟΣ ΣΤΟ SIDEBAR ---
 st.sidebar.markdown("---")
-with st.sidebar.expander("📊 Στατιστικά Συλλογής ανά Έτος", expanded=False):
+with st.sidebar.expander("📊 Στατιστικά & Πρόοδος ανά Έτος", expanded=False):
   owned_df = df[df["owned"] == True] if not df.empty else df
   total_collection_count = len(owned_df)
-  total_official_count = sum(TOTAL_CARDS_PER_YEAR.values())
+  total_official_count = sum(
+      [info["total"] for info in OFFICIAL_DATA_BY_YEAR.values()]
+  )
 
   st.markdown(
       f"**Γενικό Σύνολο:** `{total_collection_count} /"
@@ -210,13 +236,17 @@ with st.sidebar.expander("📊 Στατιστικά Συλλογής ανά Έτ
   else:
     counts_per_year = pd.Series(dtype=int)
 
-  for year_str, official_total in TOTAL_CARDS_PER_YEAR.items():
+  for year_str, info in OFFICIAL_DATA_BY_YEAR.items():
+    official_total = info["total"]
     user_count = int(counts_per_year.get(year_str, 0))
+    progress_val = min(1.0, user_count / official_total if official_total > 0 else 0)
+    
     st.text(f"{year_str}: {user_count} / {official_total}")
+    st.progress(progress_val)
 
 st.markdown("---")
 
-# --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ ---
+# --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ (ΜΕ AUTO-FILL ΤΙΡΑΖ) ---
 with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συλλογή", expanded=False):
   with st.form("add_card_form", clear_on_submit=True):
     col1, col2, col3 = st.columns(3)
@@ -228,14 +258,17 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       with c_m:
         new_month = st.selectbox("Μήνας (ΜΜ)", MONTHS_NUM_LIST, index=9)
       with c_y:
+        def_year = "1993"
         new_year = st.text_input(
-            "Έτος (π.χ. 2000)", value="1993", max_chars=4
+            "Έτος (π.χ. 2000)", value=def_year, max_chars=4
         )
     with col3:
-      new_units = st.selectbox(
-          "Μονάδες", ["100", "500", "1000", "Άλλο"], index=0
-      )
-      new_mintage = st.text_input("Τιράζ (π.χ. 50.000)", value="Άγνωστο")
+      new_units = st.selectbox("Μονάδες", UNITS_OPTIONS, index=0)
+      
+      # Αυτόματη συμπλήρωση τιράζ βάσει έτους αν υπάρχει στον πίνακα
+      auto_mintage = OFFICIAL_DATA_BY_YEAR.get(convert_year_to_4digits(new_year), {}).get("mintage", "50.000")
+      new_mintage = st.text_input("Τιράζ (π.χ. 50.000)", value=auto_mintage)
+      
       new_cat = st.selectbox(
           "Κατηγορία", ["Μαγνητική", "Chip", "Χρονοκάρτα"], index=1
       )
@@ -246,18 +279,18 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
     f_col1, f_col2 = st.columns(2)
     with f_col1:
       front_file = st.file_uploader(
-          "Μπροστινή Όψη", type=["jpg", "png", "jpeg"], key="add_front"
+          "Μπροστινή Όψη", type=("jpg", "png", "jpeg"), key="add_front"
       )
     with f_col2:
       back_file = st.file_uploader(
-          "Πίσω Όψη", type=["jpg", "png", "jpeg"], key="add_back"
+          "Πίσω Όψη", type=("jpg", "png", "jpeg"), key="add_back"
       )
 
     col_a, col_b = st.columns(2)
     with col_a:
       new_owned = st.checkbox("Την έχω στη συλλογή;", value=True)
     with col_b:
-      new_qty = st.number_input("Ποσότητα", min_value=0, value=1)
+      new_qty = st.number_input("Ποσότητα", min_value=1, value=1)
 
     submit_button = st.form_submit_button("💾 Αποθήκευση Κάρτας")
 
@@ -265,66 +298,82 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       if not new_code or not new_title:
         st.error("Παρακαλώ συμπλήρωσε τουλάχιστον Κωδικό και Τίτλο!")
       else:
-        new_id = int(df["id"].max() + 1) if not df.empty else 1
+        # Έλεγχος διπλότυπου κωδικού
+        existing_card = df[df["code"].str.strip().str.lower() == new_code.strip().lower()]
+        
+        if not existing_card.empty:
+          card_id = int(existing_card.iloc[0]["id"])
+          current_qty = int(existing_card.iloc[0]["quantity"])
+          updated_qty = current_qty + int(new_qty)
+          
+          df.loc[df["id"] == card_id, "quantity"] = updated_qty
+          df.to_csv(CATALOG_FILE, index=False)
+          st.success(f"Ο κωδικός '{new_code}' υπάρχει ήδη! Η ποσότητα ενημερώθηκε σε {updated_qty}.")
+          st.rerun()
+        else:
+          new_id = int(df["id"].max() + 1) if not df.empty else 1
 
-        front_path = "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
-        if front_file is not None:
-          os.makedirs(IMAGES_DIR, exist_ok=True)
-          ext = front_file.name.split(".")[-1]
-          front_filename = f"front_{new_id}.{ext}"
-          front_path = os.path.join(IMAGES_DIR, front_filename)
-          with open(front_path, "wb") as f:
-            f.write(front_file.getbuffer())
-          front_path = f"images/{front_filename}"
+          front_path = "https://via.placeholder.com/200/1e3d59/ffffff?text=Front"
+          if front_file is not None:
+            os.makedirs(IMAGES_DIR, exist_ok=True)
+            ext = front_file.name.split(".")[-1]
+            front_filename = f"front_{new_id}.{ext}"
+            front_path = os.path.join(IMAGES_DIR, front_filename)
+            with open(front_path, "wb") as f:
+              f.write(front_file.getbuffer())
+            front_path = f"images/{front_filename}"
 
-        back_path = "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
-        if back_file is not None:
-          os.makedirs(IMAGES_DIR, exist_ok=True)
-          ext = back_file.name.split(".")[-1]
-          back_filename = f"back_{new_id}.{ext}"
-          back_path = os.path.join(IMAGES_DIR, back_filename)
-          with open(back_path, "wb") as f:
-            f.write(back_file.getbuffer())
-          back_path = f"images/{back_filename}"
+          back_path = "https://via.placeholder.com/200/cccccc/ffffff?text=Back"
+          if back_file is not None:
+            os.makedirs(IMAGES_DIR, exist_ok=True)
+            ext = back_file.name.split(".")[-1]
+            back_filename = f"back_{new_id}.{ext}"
+            back_path = os.path.join(IMAGES_DIR, back_filename)
+            with open(back_path, "wb") as f:
+              f.write(back_file.getbuffer())
+            back_path = f"images/{back_filename}"
 
-        new_row = {
-            "id": new_id,
-            "code": str(new_code),
-            "title": str(new_title),
-            "month": str(new_month),
-            "year": convert_year_to_4digits(new_year),
-            "units": str(new_units),
-            "mintage": str(new_mintage),
-            "category": str(new_cat),
-            "condition": str(new_condition),
-            "image_url": str(front_path),
-            "back_image_url": str(back_path),
-            "owned": bool(new_owned),
-            "quantity": int(new_qty),
-        }
+          new_row = {
+              "id": new_id,
+              "code": str(new_code),
+              "title": str(new_title),
+              "month": str(new_month),
+              "year": convert_year_to_4digits(new_year),
+              "units": str(new_units),
+              "mintage": str(new_mintage),
+              "category": str(new_cat),
+              "condition": str(new_condition),
+              "image_url": str(front_path),
+              "back_image_url": str(back_path),
+              "owned": bool(new_owned),
+              "quantity": int(new_qty),
+          }
 
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df.to_csv(CATALOG_FILE, index=False)
-        st.success(f"Η κάρτα '{new_title}' προστέθηκε με επιτυχία!")
-        st.rerun()
+          df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+          df.to_csv(CATALOG_FILE, index=False)
+          st.success(f"Η κάρτα '{new_title}' προστέθηκε με επιτυχία!")
+          st.rerun()
 
 st.markdown("---")
 
 # --- ΕΦΑΡΜΟΓΗ ΦΙΛΤΡΩΝ & ΤΑΞΙΝΟΜΗΣΗΣ ---
 filtered_df = df.copy()
 
+if selected_year_filter != "Όλα τα έτη":
+  filtered_df = filtered_df[filtered_df["year"] == selected_year_filter]
+
 if search_query:
   query = search_query.lower()
   filtered_df = filtered_df[
       filtered_df["code"].str.lower().str.contains(query, na=False)
       | filtered_df["title"].str.lower().str.contains(query, na=False)
-      | (filtered_df["month"] + "/" + filtered_df["year"])
-      .str.lower()
-      .str.contains(query, na=False)
   ]
 
 if filter_owned:
   filtered_df = filtered_df[filtered_df["owned"] == True]
+
+if filter_wishlist:
+  filtered_df = filtered_df[filtered_df["owned"] == False]
 
 if filter_damaged:
   filtered_df = filtered_df[
@@ -347,18 +396,41 @@ elif sort_option == "Αλφαβητικά (Τίτλος A-Ω)":
 elif sort_option == "Αλφαβητικά (Κωδικός)":
   filtered_df = filtered_df.sort_values(by="code", ascending=True)
 
-# --- ΕΜΦΑΝΙΣΗ ΚΑΡΤΩΝ ---
-st.subheader("🖼️ Οι Κάρτες σου")
+# --- ΣΕΛΙΔΟΠΟΙΗΣΗ (PAGINATION) ---
+items_per_page = 24
+total_items = len(filtered_df)
+total_pages = (
+    max(1, (total_items + items_per_page - 1) // items_per_page)
+    if total_items > 0
+    else 1
+)
 
-if filtered_df.empty:
+st.sidebar.markdown("---")
+st.sidebar.header("📄 Σελιδοποίηση")
+current_page = st.sidebar.number_input(
+    "Επιλογή Σελίδας", min_value=1, max_value=total_pages, value=1, step=1
+)
+st.sidebar.text(f"Σελίδα {current_page} από {total_pages}")
+
+start_idx = (current_page - 1) * items_per_page
+end_idx = start_idx + items_per_page
+paginated_df = filtered_df.iloc[start_idx:end_idx]
+
+# --- ΕΜΦΑΝΙΣΗ ΚΑΡΤΩΝ ---
+st.subheader(
+    f"🖼️ Οι Κάρτες σας ({selected_year_filter}) — Σελίδα {current_page} από"
+    f" {total_pages} (Σύνολο: {total_items} κάρτες)"
+)
+
+if paginated_df.empty:
   st.info(
       "Δεν βρέθηκαν κάρτες που να ταιριάζουν με τα κριτήρια αναζήτησης."
   )
 else:
   cols_per_row = 3
   rows = [
-      filtered_df.iloc[i : i + cols_per_row]
-      for i in range(0, len(filtered_df), cols_per_row)
+      paginated_df.iloc[i : i + cols_per_row]
+      for i in range(0, len(paginated_df), cols_per_row)
   ]
 
   for row_chunk in rows:
@@ -446,13 +518,12 @@ else:
                   "Έτος", value=str(row["year"]), max_chars=4, key=f"y_{row['id']}"
               )
 
-            units_options = ["100", "500", "1000", "Άλλο"]
             u_val = str(row["units"])
             u_index = (
-                units_options.index(u_val) if u_val in units_options else 3
+                UNITS_OPTIONS.index(u_val) if u_val in UNITS_OPTIONS else 4
             )
             e_units = st.selectbox(
-                "Μονάδες", units_options, index=u_index, key=f"u_{row['id']}"
+                "Μονάδες", UNITS_OPTIONS, index=u_index, key=f"u_{row['id']}"
             )
 
             e_mintage = st.text_input(
@@ -485,12 +556,12 @@ else:
 
             e_front = st.file_uploader(
                 "Νέα Μπροστινή Όψη",
-                type=["jpg", "png", "jpeg"],
+                type=("jpg", "png", "jpeg"),
                 key=f"ef_{row['id']}",
             )
             e_back = st.file_uploader(
                 "Νέα Πίσω Όψη",
-                type=["jpg", "png", "jpeg"],
+                type=("jpg", "png", "jpeg"),
                 key=f"eb_{row['id']}",
             )
 
