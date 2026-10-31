@@ -30,7 +30,6 @@ MONTH_MAPPING = {
     "Δεκέμβριος": "12",
 }
 
-# Επίσημα στοιχεία τιράζ / πλήθους ανά έτος για αυτόματη συμπλήρωση & πρόοδο
 OFFICIAL_DATA_BY_YEAR = {
     "1992": {"total": 3, "mintage": "50.000"},
     "1993": {"total": 34, "mintage": "50.000"},
@@ -94,7 +93,7 @@ def load_data():
       )
 
     if "owned" in df.columns:
-      df["owned"] = df["owned"].astype(str).str.lower() == "true"
+      df["owned"] = df["owned"].astype(str).str.lower().isin(["true", "1", "yes"])
     else:
       df["owned"] = True
 
@@ -143,9 +142,13 @@ def load_data():
 
 df = load_data()
 
+if "last_year" not in st.session_state:
+  st.session_state.last_year = "1993"
+if "last_month" not in st.session_state:
+  st.session_state.last_month = "10"
+
 st.title("📞 Η Συλλογή μου από Ελληνικές Τηλεκάρτες")
 
-# --- ΔΙΑΧΕΙΡΙΣΗ ΑΡΧΕΙΟΥ & ΕΞΑΓΩΓΗ ΕΛΛΕΙΨΕΩΝ ---
 st.sidebar.header("📁 Διαχείριση Αρχείου")
 
 csv_data = df.to_csv(index=False).encode("utf-8")
@@ -169,7 +172,6 @@ if uploaded_csv is not None:
   except Exception as e:
     st.sidebar.error("Πρόκυψε σφάλμα κατά τη φόρτωση.")
 
-# --- ΕΞΑΓΩΓΗ WISHLIST / ΕΛΛΕΙΨΕΩΝ ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("📋 Εξαγωγή Ζητούμενων (Wishlist)")
 if not df.empty:
@@ -192,7 +194,6 @@ st.sidebar.header("🔍 Αναζήτηση & Φίλτρα")
 
 search_query = st.sidebar.text_input("Αναζήτηση (Κωδικός, Τίτλος)")
 
-# --- ΦΙΛΤΡΟ ΕΤΟΥΣ ---
 available_years = ["Όλα τα έτη"] + sorted(
     list(OFFICIAL_DATA_BY_YEAR.keys()), reverse=True
 )
@@ -215,19 +216,24 @@ filter_damaged = st.sidebar.checkbox(
 )
 filter_medium = st.sidebar.checkbox("🟡 Εμφάνιση μόνο Μέτριων")
 
-# --- ΣΤΑΤΙΣΤΙΚΑ & PROGRESS BARS ΑΝΑ ΕΤΟΣ ΣΤΟ SIDEBAR ---
 st.sidebar.markdown("---")
-with st.sidebar.expander("📊 Στατιστικά & Πρόοδος ανά Έτος", expanded=False):
+with st.sidebar.expander("📊 Στατιστικά & Γραφήματα Συλλογής", expanded=False):
   owned_df = df[df["owned"] == True] if not df.empty else df
   total_collection_count = len(owned_df)
   total_official_count = sum(
       [info["total"] for info in OFFICIAL_DATA_BY_YEAR.values()]
   )
+  total_pct = (
+      (total_collection_count / total_official_count * 100)
+      if total_official_count > 0
+      else 0.0
+  )
 
   st.markdown(
-      f"**Γενικό Σύνολο:** `{total_collection_count} /"
-      f" {total_official_count}`"
+      f"**Γενικό Σύνολο:** `{total_collection_count} / {total_official_count}`"
+      f" (**{total_pct:.1f}%**)"
   )
+  st.progress(min(1.0, total_pct / 100.0))
   st.markdown("---")
 
   if not df.empty:
@@ -236,17 +242,25 @@ with st.sidebar.expander("📊 Στατιστικά & Πρόοδος ανά Έτ
   else:
     counts_per_year = pd.Series(dtype=int)
 
+  chart_data = []
+
   for year_str, info in OFFICIAL_DATA_BY_YEAR.items():
     official_total = info["total"]
     user_count = int(counts_per_year.get(year_str, 0))
-    progress_val = min(1.0, user_count / official_total if official_total > 0 else 0)
-    
-    st.text(f"{year_str}: {user_count} / {official_total}")
-    st.progress(progress_val)
+    yr_pct = (user_count / official_total * 100) if official_total > 0 else 0.0
+    chart_data.append({"Έτος": year_str, "Ποσοστό (%)": round(yr_pct, 1)})
+
+    st.text(f"{year_str}: {user_count} / {official_total} ({yr_pct:.1f}%)")
+    st.progress(min(1.0, yr_pct / 100.0))
+
+  st.markdown("---")
+  st.subheader("📈 Γράφημα Πληρότητας")
+  df_chart = pd.DataFrame(chart_data).set_index("Έτος")
+  st.bar_chart(df_chart)
 
 st.markdown("---")
 
-# --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ (ΜΕ AUTO-FILL ΤΙΡΑΖ) ---
+# --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ ---
 with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συλλογή", expanded=False):
   with st.form("add_card_form", clear_on_submit=True):
     col1, col2, col3 = st.columns(3)
@@ -256,19 +270,26 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
     with col2:
       c_m, c_y = st.columns(2)
       with c_m:
-        new_month = st.selectbox("Μήνας (ΜΜ)", MONTHS_NUM_LIST, index=9)
+        m_index = (
+            MONTHS_NUM_LIST.index(st.session_state.last_month)
+            if st.session_state.last_month in MONTHS_NUM_LIST
+            else 9
+        )
+        new_month = st.selectbox(
+            "Μήνας (ΜΜ)", MONTHS_NUM_LIST, index=m_index
+        )
       with c_y:
-        def_year = "1993"
         new_year = st.text_input(
-            "Έτος (π.χ. 2000)", value=def_year, max_chars=4
+            "Έτος (π.χ. 2000)", value=st.session_state.last_year, max_chars=4
         )
     with col3:
       new_units = st.selectbox("Μονάδες", UNITS_OPTIONS, index=0)
-      
-      # Αυτόματη συμπλήρωση τιράζ βάσει έτους αν υπάρχει στον πίνακα
-      auto_mintage = OFFICIAL_DATA_BY_YEAR.get(convert_year_to_4digits(new_year), {}).get("mintage", "50.000")
+
+      auto_mintage = OFFICIAL_DATA_BY_YEAR.get(
+          convert_year_to_4digits(new_year), {}
+      ).get("mintage", "50.000")
       new_mintage = st.text_input("Τιράζ (π.χ. 50.000)", value=auto_mintage)
-      
+
       new_cat = st.selectbox(
           "Κατηγορία", ["Μαγνητική", "Chip", "Χρονοκάρτα"], index=1
       )
@@ -298,17 +319,24 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
       if not new_code or not new_title:
         st.error("Παρακαλώ συμπλήρωσε τουλάχιστον Κωδικό και Τίτλο!")
       else:
-        # Έλεγχος διπλότυπου κωδικού
-        existing_card = df[df["code"].str.strip().str.lower() == new_code.strip().lower()]
-        
+        st.session_state.last_year = convert_year_to_4digits(new_year)
+        st.session_state.last_month = str(new_month)
+
+        existing_card = df[
+            df["code"].str.strip().str.lower() == new_code.strip().lower()
+        ]
+
         if not existing_card.empty:
           card_id = int(existing_card.iloc[0]["id"])
           current_qty = int(existing_card.iloc[0]["quantity"])
           updated_qty = current_qty + int(new_qty)
-          
+
           df.loc[df["id"] == card_id, "quantity"] = updated_qty
           df.to_csv(CATALOG_FILE, index=False)
-          st.success(f"Ο κωδικός '{new_code}' υπάρχει ήδη! Η ποσότητα ενημερώθηκε σε {updated_qty}.")
+          st.success(
+              f"Ο κωδικός '{new_code}' υπάρχει ήδη! Η ποσότητα ενημερώθηκε σε"
+              f" {updated_qty}."
+          )
           st.rerun()
         else:
           new_id = int(df["id"].max() + 1) if not df.empty else 1
@@ -356,7 +384,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
 
 st.markdown("---")
 
-# --- ΕΦΑΡΜΟΓΗ ΦΙΛΤΡΩΝ & ΤΑΞΙΝΟΜΗΣΗΣ ---
+# --- ΦΙΛΤΡΑΡΙΣΜΑ & ΑΝΑΖΗΤΗΣΗ ---
 filtered_df = df.copy()
 
 if selected_year_filter != "Όλα τα έτη":
@@ -408,7 +436,11 @@ total_pages = (
 st.sidebar.markdown("---")
 st.sidebar.header("📄 Σελιδοποίηση")
 current_page = st.sidebar.number_input(
-    "Επιλογή Σελίδας", min_value=1, max_value=total_pages, value=1, step=1
+    "Επιλογή Σελίδας",
+    min_value=1,
+    max_value=total_pages,
+    value=min(1, total_pages),
+    step=1,
 )
 st.sidebar.text(f"Σελίδα {current_page} από {total_pages}")
 
@@ -418,7 +450,7 @@ paginated_df = filtered_df.iloc[start_idx:end_idx]
 
 # --- ΕΜΦΑΝΙΣΗ ΚΑΡΤΩΝ ---
 st.subheader(
-    f"🖼️ Οι Κάρτες σας ({selected_year_filter}) — Σελίδα {current_page} από"
+    f"🖼️ Αποτελέσματα Αναζήτησης / Κάρτες — Σελίδα {current_page} από"
     f" {total_pages} (Σύνολο: {total_items} κάρτες)"
 )
 
@@ -492,11 +524,16 @@ else:
           df.loc[df["id"] == row["id"], "quantity"] = new_qty
           df.to_csv(CATALOG_FILE, index=False)
 
-        # --- ΕΠΕΞΕΡΓΑΣΙΑ / ΔΙΑΓΡΑΦΗ ---
+        # --- ΕΠΕΞΕΡΓΑΣΙΑ / ΔΙΑΓΡΑΦΗ ΜΕ ΜΟΝΑΔΙΚΑ KEYS ---
+        card_id = int(row["id"])
         with st.expander("✏️ Επεξεργασία / Διαγραφή", expanded=False):
-          with st.form(f"edit_form_{row['id']}"):
-            e_code = st.text_input("Κωδικός", value=str(row["code"]))
-            e_title = st.text_input("Τίτλος", value=str(row["title"]))
+          with st.form(f"edit_form_{card_id}"):
+            e_code = st.text_input(
+                "Κωδικός", value=str(row["code"]), key=f"e_code_{card_id}"
+            )
+            e_title = st.text_input(
+                "Τίτλος", value=str(row["title"]), key=f"e_title_{card_id}"
+            )
 
             em_col, ey_col = st.columns(2)
             with em_col:
@@ -510,12 +547,15 @@ else:
                   "Μήνας (ΜΜ)",
                   MONTHS_NUM_LIST,
                   index=m_index,
-                  key=f"m_{row['id']}",
+                  key=f"e_m_{card_id}",
               )
 
             with ey_col:
               e_year = st.text_input(
-                  "Έτος", value=str(row["year"]), max_chars=4, key=f"y_{row['id']}"
+                  "Έτος",
+                  value=str(row["year"]),
+                  max_chars=4,
+                  key=f"e_y_{card_id}",
               )
 
             u_val = str(row["units"])
@@ -523,13 +563,16 @@ else:
                 UNITS_OPTIONS.index(u_val) if u_val in UNITS_OPTIONS else 4
             )
             e_units = st.selectbox(
-                "Μονάδες", UNITS_OPTIONS, index=u_index, key=f"u_{row['id']}"
+                "Μονάδες",
+                UNITS_OPTIONS,
+                index=u_index,
+                key=f"e_u_{card_id}",
             )
 
             e_mintage = st.text_input(
                 "Τιράζ",
                 value=str(row.get("mintage", "Άγνωστο")),
-                key=f"mint_{row['id']}",
+                key=f"e_mint_{card_id}",
             )
 
             cat_options = ["Μαγνητική", "Chip", "Χρονοκάρτα"]
@@ -539,7 +582,10 @@ else:
                 else 1
             )
             e_cat = st.selectbox(
-                "Κατηγορία", cat_options, index=c_index, key=f"c_{row['id']}"
+                "Κατηγορία",
+                cat_options,
+                index=c_index,
+                key=f"e_c_{card_id}",
             )
 
             cond_idx = (
@@ -551,39 +597,42 @@ else:
                 "Κατάσταση Κάρτας",
                 CONDITION_OPTIONS,
                 index=cond_idx,
-                key=f"cond_{row['id']}",
+                key=f"e_cond_{card_id}",
             )
 
             e_front = st.file_uploader(
                 "Νέα Μπροστινή Όψη",
                 type=("jpg", "png", "jpeg"),
-                key=f"ef_{row['id']}",
+                key=f"e_ef_{card_id}",
             )
             e_back = st.file_uploader(
                 "Νέα Πίσω Όψη",
                 type=("jpg", "png", "jpeg"),
-                key=f"eb_{row['id']}",
+                key=f"e_eb_{card_id}",
             )
 
             col_save, col_del = st.columns(2)
             with col_save:
-              save_edit = st.form_submit_button("💾 Αποθήκευση")
+              save_edit = st.form_submit_button(
+                  "💾 Αποθήκευση", key=f"save_btn_{card_id}"
+              )
             with col_del:
-              delete_card = st.form_submit_button("🗑️ Διαγραφή")
+              delete_card = st.form_submit_button(
+                  "🗑️ Διαγραφή", key=f"del_btn_{card_id}"
+              )
 
             if save_edit:
-              df.loc[df["id"] == row["id"], "code"] = str(e_code)
-              df.loc[df["id"] == row["id"], "title"] = str(e_title)
-              df.loc[df["id"] == row["id"], "month"] = str(e_month)
-              df.loc[df["id"] == row["id"], "year"] = convert_year_to_4digits(
+              df.loc[df["id"] == card_id, "code"] = str(e_code)
+              df.loc[df["id"] == card_id, "title"] = str(e_title)
+              df.loc[df["id"] == card_id, "month"] = str(e_month)
+              df.loc[df["id"] == card_id, "year"] = convert_year_to_4digits(
                   e_year
               )
-              df.loc[df["id"] == row["id"], "units"] = str(e_units)
-              df.loc[df["id"] == row["id"], "mintage"] = str(e_mintage)
-              df.loc[df["id"] == row["id"], "category"] = str(e_cat)
-              df.loc[df["id"] == row["id"], "condition"] = str(e_cond)
+              df.loc[df["id"] == card_id, "units"] = str(e_units)
+              df.loc[df["id"] == card_id, "mintage"] = str(e_mintage)
+              df.loc[df["id"] == card_id, "category"] = str(e_cat)
+              df.loc[df["id"] == card_id, "condition"] = str(e_cond)
 
-              card_id = row["id"]
               if e_front is not None:
                 ext = e_front.name.split(".")[-1]
                 front_filename = f"front_{card_id}.{ext}"
@@ -611,7 +660,7 @@ else:
               st.rerun()
 
             if delete_card:
-              df = df[df["id"] != row["id"]]
+              df = df[df["id"] != card_id]
               df.to_csv(CATALOG_FILE, index=False)
               st.success("Η κάρτα διαγράφηκε!")
               st.rerun()
