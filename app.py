@@ -12,8 +12,14 @@ if not os.path.exists(IMAGES_DIR):
   os.makedirs(IMAGES_DIR)
 
 MONTHS_NUM_LIST = [f"{i:02d}" for i in range(1, 13)] + ["--"]
-CONDITION_OPTIONS = ["Άριστη", "Φθαρμένη / Χτυπημένη", "Μέτρια"]
-UNITS_OPTIONS = ["100", "200", "500", "1000", "Άλλο"]
+CONDITION_OPTIONS = [
+    "Άριστη",
+    "Σαν καινούργια",
+    "Κλειστή",
+    "Φθαρμένη / Χτυπημένη",
+    "Μέτρια",
+]
+UNITS_OPTIONS = ["100", "200", "500", "1000", "3€", "4€", "Άλλο"]
 
 MONTH_MAPPING = {
     "Ιανουάριος": "01",
@@ -92,10 +98,7 @@ def load_data():
           pd.to_numeric(df["quantity"], errors="coerce").fillna(1).astype(int)
       )
 
-    if "owned" in df.columns:
-      df["owned"] = df["owned"].astype(str).str.lower().isin(["true", "1", "yes"])
-    else:
-      df["owned"] = True
+    df["owned"] = True
 
     if "month" in df.columns:
       df["month"] = (
@@ -111,7 +114,7 @@ def load_data():
       df["year"] = "1993"
 
     if "mintage" not in df.columns:
-      df["mintage"] = "Άγνωστο"
+      df["mintage"] = "50.000"
     if "condition" not in df.columns:
       df["condition"] = "Άριστη"
     if "category" not in df.columns:
@@ -170,10 +173,10 @@ if uploaded_csv is not None:
     st.sidebar.success("Το αρχείο φορτώθηκε επιτυχώς!")
     st.rerun()
   except Exception as e:
-    st.sidebar.error("Πρόκυψε σφάλμα κατά τη φόρτωση.")
+    st.sidebar.error("Πρόκυψε σφάλμα.")
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📋 Εξαγωγή Ζητούμενων (Wishlist)")
+st.sidebar.subheader("📋 Εξαγωγή Ζητούμενων")
 if not df.empty:
   wishlist_df = df[df["owned"] == False]
   if not wishlist_df.empty:
@@ -181,13 +184,13 @@ if not df.empty:
         index=False
     ).encode("utf-8")
     st.sidebar.download_button(
-        label="📥 Κατέβασμα Λίστας Ελλείψεων",
+        label="📥 Κατέβασμα Wishlist",
         data=wishlist_csv,
         file_name="my_wishlist.csv",
         mime="text/csv",
     )
   else:
-    st.sidebar.text("Δεν υπάρχουν καταχωρημένες ελλείψεις.")
+    st.sidebar.text("Δεν υπάρχουν ελλείψεις.")
 
 st.sidebar.markdown("---")
 st.sidebar.header("🔍 Αναζήτηση & Φίλτρα")
@@ -209,15 +212,18 @@ sort_option = st.sidebar.selectbox(
     ],
 )
 
-filter_owned = st.sidebar.checkbox("Εμφάνιση μόνο όσων έχω στη συλλογή")
-filter_wishlist = st.sidebar.checkbox("⭐ Εμφάνιση Wishlist (Ζητούμενες)")
+filter_low_mintage = st.sidebar.checkbox(
+    "📉 Εμφάνιση μόνο Χαμηλών Τιράζ (< 70.000)"
+)
+filter_like_new = st.sidebar.checkbox("✨ Εμφάνιση μόνο Σαν Καινούργιες")
+filter_closed = st.sidebar.checkbox("🔒 Εμφάνιση μόνο Κλειστών")
 filter_damaged = st.sidebar.checkbox(
     "⚠️ Εμφάνιση μόνο Φθαρμένων (για αντικατάσταση)"
 )
 filter_medium = st.sidebar.checkbox("🟡 Εμφάνιση μόνο Μέτριων")
 
 st.sidebar.markdown("---")
-with st.sidebar.expander("📊 Στατιστικά & Γραφήματα Συλλογής", expanded=False):
+with st.sidebar.expander("📊 Στατιστικά & Γραφήματα", expanded=False):
   owned_df = df[df["owned"] == True] if not df.empty else df
   total_collection_count = len(owned_df)
   total_official_count = sum(
@@ -230,7 +236,7 @@ with st.sidebar.expander("📊 Στατιστικά & Γραφήματα Συλ�
   )
 
   st.markdown(
-      f"**Γενικό Σύνολο:** `{total_collection_count} / {total_official_count}`"
+      f"**Σύνολο:** `{total_collection_count} / {total_official_count}`"
       f" (**{total_pct:.1f}%**)"
   )
   st.progress(min(1.0, total_pct / 100.0))
@@ -261,7 +267,7 @@ with st.sidebar.expander("📊 Στατιστικά & Γραφήματα Συλ�
 st.markdown("---")
 
 # --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ ΝΕΑΣ ΚΑΡΤΑΣ ---
-with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συλλογή", expanded=False):
+with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας", expanded=False):
   with st.form("add_card_form", clear_on_submit=True):
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -283,7 +289,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
             "Έτος (π.χ. 2000)", value=st.session_state.last_year, max_chars=4
         )
     with col3:
-      new_units = st.selectbox("Μονάδες", UNITS_OPTIONS, index=0)
+      new_units = st.selectbox("Μονάδες / Αξία", UNITS_OPTIONS, index=0)
 
       auto_mintage = OFFICIAL_DATA_BY_YEAR.get(
           convert_year_to_4digits(new_year), {}
@@ -307,17 +313,13 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
           "Πίσω Όψη", type=("jpg", "png", "jpeg"), key="add_back"
       )
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-      new_owned = st.checkbox("Την έχω στη συλλογή;", value=True)
-    with col_b:
-      new_qty = st.number_input("Ποσότητα", min_value=1, value=1)
+    new_qty = st.number_input("Ποσότητα", min_value=1, value=1)
 
     submit_button = st.form_submit_button("💾 Αποθήκευση Κάρτας")
 
     if submit_button:
       if not new_code or not new_title:
-        st.error("Παρακαλώ συμπλήρωσε τουλάχιστον Κωδικό και Τίτλο!")
+        st.error("Παρακαλώ συμπλήρωσε Κωδικό και Τίτλο!")
       else:
         st.session_state.last_year = convert_year_to_4digits(new_year)
         st.session_state.last_month = str(new_month)
@@ -334,7 +336,7 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
           df.loc[df["id"] == card_id, "quantity"] = updated_qty
           df.to_csv(CATALOG_FILE, index=False)
           st.success(
-              f"Ο κωδικός '{new_code}' υπάρχει ήδη! Η ποσότητα ενημερώθηκε σε"
+              f"Ο κωδικός '{new_code}' υπάρχει! Η ποσότητα ενημερώθηκε σε"
               f" {updated_qty}."
           )
           st.rerun()
@@ -373,13 +375,13 @@ with st.expander("➕ Προσθήκη Νέας Τηλεκάρτας στη Συ
               "condition": str(new_condition),
               "image_url": str(front_path),
               "back_image_url": str(back_path),
-              "owned": bool(new_owned),
+              "owned": True,
               "quantity": int(new_qty),
           }
 
           df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
           df.to_csv(CATALOG_FILE, index=False)
-          st.success(f"Η κάρτα '{new_title}' προστέθηκε με επιτυχία!")
+          st.success(f"Η κάρτα '{new_title}' προστέθηκε!")
           st.rerun()
 
 st.markdown("---")
@@ -397,11 +399,23 @@ if search_query:
       | filtered_df["title"].str.lower().str.contains(query, na=False)
   ]
 
-if filter_owned:
-  filtered_df = filtered_df[filtered_df["owned"] == True]
+if filter_low_mintage:
+  temp_mintage = (
+      filtered_df["mintage"]
+      .astype(str)
+      .str.replace(".", "", regex=False)
+      .str.replace(",", "", regex=False)
+  )
+  numeric_mintage = pd.to_numeric(
+      temp_mintage.str.extract(r"(\d+)", expand=False), errors="coerce"
+  ).fillna(999999)
+  filtered_df = filtered_df[numeric_mintage < 70000]
 
-if filter_wishlist:
-  filtered_df = filtered_df[filtered_df["owned"] == False]
+if filter_like_new:
+  filtered_df = filtered_df[filtered_df["condition"] == "Σαν καινούργια"]
+
+if filter_closed:
+  filtered_df = filtered_df[filtered_df["condition"] == "Κλειστή"]
 
 if filter_damaged:
   filtered_df = filtered_df[
@@ -411,6 +425,7 @@ if filter_damaged:
 if filter_medium:
   filtered_df = filtered_df[filtered_df["condition"] == "Μέτρια"]
 
+# --- ΤΑΞΙΝΟΜΗΣΗ ---
 if sort_option == "Χρονολογική (Παλαιότερες πρώτα)":
   filtered_df = filtered_df.sort_values(
       by=["year", "month"], ascending=[True, True]
@@ -450,14 +465,12 @@ paginated_df = filtered_df.iloc[start_idx:end_idx]
 
 # --- ΕΜΦΑΝΙΣΗ ΚΑΡΤΩΝ ---
 st.subheader(
-    f"🖼️ Αποτελέσματα Αναζήτησης / Κάρτες — Σελίδα {current_page} από"
+    f"🖼️ Κάρτες Συλλογής ({selected_year_filter}) — Σελίδα {current_page} από"
     f" {total_pages} (Σύνολο: {total_items} κάρτες)"
 )
 
 if paginated_df.empty:
-  st.info(
-      "Δεν βρέθηκαν κάρτες που να ταιριάζουν με τα κριτήρια αναζήτησης."
-  )
+  st.info("Δεν βρέθηκαν κάρτες.")
 else:
   cols_per_row = 3
   rows = [
@@ -493,7 +506,11 @@ else:
           st.image(back_img, width=130, caption="Πίσω")
 
         cond_str = str(row.get("condition", "Άριστη"))
-        if cond_str == "Φθαρμένη / Χτυπημένη":
+        if cond_str == "Σαν καινούργια":
+          badge = " ✨ [Σαν καινούργια]"
+        elif cond_str == "Κλειστή":
+          badge = " 🔒 [Κλειστή]"
+        elif cond_str == "Φθαρμένη / Χτυπημένη":
           badge = " ⚠️ [Φθαρμένη]"
         elif cond_str == "Μέτρια":
           badge = " 🟡 [Μέτρια]"
@@ -504,23 +521,19 @@ else:
 
         st.markdown(f"**{row['code']} - {row['title']}**{badge}")
         st.caption(
-            f"📅 **{date_str}** | 🔢 Μονάδες: {row['units']} | Κατάσταση:"
-            f" **{cond_str}** | {row['category']}"
+            f"📅 **{date_str}** | 🔢 Αξία/Μον.: {row['units']} | Τιράζ:"
+            f" **{row.get('mintage', 'Άγνωστο')}** | Κατάσταση:"
+            f" **{cond_str}**"
         )
 
-        current_owned = bool(row["owned"])
-        new_owned = st.checkbox(
-            "Την έχω", value=current_owned, key=f"owned_{row['id']}"
-        )
         new_qty = st.number_input(
             "Ποσότητα",
-            min_value=0,
-            value=int(row["quantity"]),
+            min_value=1,
+            value=int(row["quantity"]) if str(row["quantity"]).isdigit() else 1,
             key=f"qty_{row['id']}",
         )
 
-        if new_owned != current_owned or new_qty != row["quantity"]:
-          df.loc[df["id"] == row["id"], "owned"] = new_owned
+        if new_qty != int(row["quantity"]):
           df.loc[df["id"] == row["id"], "quantity"] = new_qty
           df.to_csv(CATALOG_FILE, index=False)
 
@@ -563,7 +576,7 @@ else:
                 UNITS_OPTIONS.index(u_val) if u_val in UNITS_OPTIONS else 4
             )
             e_units = st.selectbox(
-                "Μονάδες",
+                "Μονάδες / Αξία",
                 UNITS_OPTIONS,
                 index=u_index,
                 key=f"e_u_{card_id}",
